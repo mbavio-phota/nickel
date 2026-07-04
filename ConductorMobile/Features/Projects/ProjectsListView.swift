@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Root authenticated screen: all projects, each showing its name and git remote.
+/// Root authenticated screen: every project as a full-width generated cover card — the
+/// content wears the color, the chrome stays quiet.
 struct ProjectsListView: View {
     @Environment(AppSession.self) private var session
     @State private var viewModel: ProjectsListViewModel?
@@ -9,6 +10,7 @@ struct ProjectsListView: View {
     var body: some View {
         content
             .navigationTitle("Projects")
+            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
                 if session.isDemo {
                     ToolbarItem(placement: .topBarLeading) {
@@ -48,11 +50,11 @@ struct ProjectsListView: View {
                 }
             case .loaded(let projects):
                 if projects.isEmpty {
-                    ContentUnavailableView(
-                        "No projects yet",
-                        systemImage: "folder",
-                        description: Text("Projects you create on the Conductor Mac app will show up here.")
-                    )
+                    ContentUnavailableView {
+                        Label("Nothing to conduct yet", systemImage: "square.stack.3d.up")
+                    } description: {
+                        Text("Projects you create in Conductor on your Mac show up here — gradient covers included.")
+                    }
                 } else {
                     list(viewModel: viewModel)
                 }
@@ -65,6 +67,7 @@ struct ProjectsListView: View {
                     Button("Retry") {
                         Task { await viewModel.refresh() }
                     }
+                    .buttonStyle(.borderedProminent)
                 }
             }
         } else {
@@ -74,26 +77,26 @@ struct ProjectsListView: View {
     }
 
     private func list(viewModel: ProjectsListViewModel) -> some View {
-        List {
-            ForEach(viewModel.projects) { project in
-                NavigationLink(value: project) {
-                    ProjectRow(project: project)
+        ScrollView {
+            LazyVStack(spacing: 14) {
+                ForEach(viewModel.projects) { project in
+                    NavigationLink(value: project) {
+                        ProjectCoverCard(project: project)
+                    }
+                    .buttonStyle(PressableStyle())
+                    .task {
+                        await viewModel.loadMoreIfNeeded(currentItem: project)
+                    }
                 }
-                .task {
-                    await viewModel.loadMoreIfNeeded(currentItem: project)
-                }
-            }
 
-            if viewModel.isLoadingMore {
-                HStack {
-                    Spacer()
+                if viewModel.isLoadingMore {
                     ProgressView()
-                    Spacer()
+                        .padding(.vertical, 12)
                 }
-                .listRowSeparator(.hidden)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
-        .listStyle(.insetGrouped)
         .refreshable {
             await viewModel.refresh()
         }
@@ -108,6 +111,7 @@ private struct DemoBadge: View {
     var body: some View {
         Text("Demo")
             .font(.caption2.weight(.semibold))
+            .fixedSize()
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(.ultraThinMaterial, in: Capsule())
@@ -117,19 +121,32 @@ private struct DemoBadge: View {
     }
 }
 
-private struct ProjectRow: View {
+/// Hypelist-style cover card: generated gradient art, project name and mono git remote
+/// overlaid on a scrim.
+private struct ProjectCoverCard: View {
     let project: Project
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(project.name)
-                .font(.body.weight(.medium))
-            Text(project.gitRemote)
-                .font(Theme.monospace(12))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+        ZStack(alignment: .bottomLeading) {
+            CoverArtView(seed: project.id)
+            CoverScrim()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(project.name)
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text(project.gitRemote)
+                    .font(Theme.monospace(12))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 2)
+        .frame(height: 148)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A single project's workspaces, with lazily-fetched status dots and a create-workspace
-/// entry point.
+/// A single project: immersive cover header, workspace cards with lazily-fetched status
+/// chips, and a floating "New Workspace" pill.
 struct ProjectDetailView: View {
     @Environment(AppSession.self) private var session
     let project: Project
@@ -12,17 +12,16 @@ struct ProjectDetailView: View {
 
     var body: some View {
         content
-            .navigationTitle(project.name)
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isCreatePresented = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("New workspace")
+            // The cover header carries the title; the bar stays a bare back button.
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .background(Color(uiColor: .systemGroupedBackground))
+            .safeAreaInset(edge: .bottom) {
+                FloatingActionPill(title: "New Workspace", systemImage: "plus") {
+                    isCreatePresented = true
                 }
+                .padding(.bottom, 8)
+                .accessibilityLabel("New workspace")
             }
             .sheet(isPresented: $isCreatePresented) {
                 if let viewModel {
@@ -52,24 +51,10 @@ struct ProjectDetailView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    list(viewModel: viewModel)
+                    scroll(viewModel: viewModel, isEmpty: false)
                 }
             case .loaded(let workspaces):
-                if workspaces.isEmpty {
-                    ContentUnavailableView {
-                        Label("No workspaces yet", systemImage: "shippingbox")
-                    } description: {
-                        Text("Create a workspace to start an agent session on \(project.name).")
-                    } actions: {
-                        Button("New Workspace") {
-                            isCreatePresented = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.accent)
-                    }
-                } else {
-                    list(viewModel: viewModel)
-                }
+                scroll(viewModel: viewModel, isEmpty: workspaces.isEmpty)
             case .failed(let error):
                 ContentUnavailableView {
                     Label("Couldn't load workspaces", systemImage: "exclamationmark.triangle")
@@ -79,6 +64,7 @@ struct ProjectDetailView: View {
                     Button("Retry") {
                         Task { await viewModel.refresh() }
                     }
+                    .buttonStyle(.borderedProminent)
                 }
             }
         } else {
@@ -87,39 +73,52 @@ struct ProjectDetailView: View {
         }
     }
 
-    private func list(viewModel: ProjectDetailViewModel) -> some View {
-        List {
-            Section {
-                Text(project.gitRemote)
-                    .font(Theme.monospace(12))
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-            }
-
-            Section("Workspaces") {
-                ForEach(viewModel.workspaces) { workspace in
-                    NavigationLink(value: workspace) {
-                        WorkspaceRow(workspace: workspace, status: viewModel.statusesById[workspace.id])
-                            .task {
-                                await viewModel.loadStatusIfNeeded(for: workspace.id)
-                            }
-                    }
-                    .task {
-                        await viewModel.loadMoreIfNeeded(currentItem: workspace)
-                    }
+    private func scroll(viewModel: ProjectDetailViewModel, isEmpty: Bool) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 12) {
+                CoverHeader(seed: project.id, title: project.name) {
+                    MonoChip(text: project.gitRemote)
                 }
 
-                if viewModel.isLoadingMore {
-                    HStack {
-                        Spacer()
+                Text("Workspaces")
+                    .font(.title3.bold())
+                    .padding(.top, 8)
+
+                if isEmpty {
+                    VStack(spacing: 6) {
+                        Text("This project is quiet")
+                            .font(.headline)
+                        Text("Spin up a workspace and put an agent to work on \(project.name).")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                } else {
+                    ForEach(viewModel.workspaces) { workspace in
+                        NavigationLink(value: workspace) {
+                            WorkspaceCard(workspace: workspace, status: viewModel.statusesById[workspace.id])
+                                .task {
+                                    await viewModel.loadStatusIfNeeded(for: workspace.id)
+                                }
+                        }
+                        .buttonStyle(PressableStyle())
+                        .task {
+                            await viewModel.loadMoreIfNeeded(currentItem: workspace)
+                        }
+                    }
+
+                    if viewModel.isLoadingMore {
                         ProgressView()
-                        Spacer()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
                     }
-                    .listRowSeparator(.hidden)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
-        .listStyle(.insetGrouped)
         .refreshable {
             await viewModel.refresh()
         }
@@ -129,21 +128,17 @@ struct ProjectDetailView: View {
     }
 }
 
-private struct WorkspaceRow: View {
+private struct WorkspaceCard: View {
     let workspace: Workspace
     let status: WorkspaceStatus?
 
     var body: some View {
         HStack(spacing: 12) {
-            if let status {
-                StatusDot(color: Theme.color(for: status.status), isPulsing: Theme.isTransitioning(status.status))
-            } else {
-                StatusDot(color: .secondary.opacity(0.3))
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(workspace.name)
-                    .font(.body.weight(.medium))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
                 if let createdDate = workspace.createdDate {
                     Text(createdDate, format: .relative(presentation: .named))
                         .font(.caption)
@@ -155,9 +150,26 @@ private struct WorkspaceRow: View {
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 8)
+
+            if let status {
+                StatusChip(
+                    color: Theme.color(for: status.status),
+                    label: status.status.displayName,
+                    isPulsing: Theme.isTransitioning(status.status)
+                )
+            } else {
+                StatusChip(color: .secondary.opacity(0.4), label: "—")
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 2)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface()
+        .contentShape(Rectangle())
     }
 }
 

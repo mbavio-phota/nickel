@@ -121,9 +121,9 @@ struct SessionDetailView: View {
                     case .loaded(let messages):
                         if messages.isEmpty {
                             ContentUnavailableView(
-                                "No messages yet",
+                                "The agent is listening",
                                 systemImage: "bubble.left.and.bubble.right",
-                                description: Text("Send a message to start the conversation.")
+                                description: Text("Send a message to put it to work.")
                             )
                             .padding(.top, 40)
                         }
@@ -177,14 +177,13 @@ private struct StatusPill: View {
         HStack {
             switch loadable {
             case .idle, .loading:
-                StatusDot(color: .secondary.opacity(0.3))
-                Text("Loading…")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                StatusChip(color: .secondary.opacity(0.4), label: "Loading…")
             case .loaded(let status):
-                StatusDot(color: Theme.color(for: status.status), isPulsing: status.status == .working)
-                Text(status.status.displayName)
-                    .font(.subheadline.weight(.medium))
+                StatusChip(
+                    color: Theme.color(for: status.status),
+                    label: status.status.displayName,
+                    isPulsing: status.status == .working
+                )
                 if status.status == .working {
                     WorkingDotsText()
                 }
@@ -195,9 +194,9 @@ private struct StatusPill: View {
                         .lineLimit(1)
                 }
             case .failed(let error):
-                StatusDot(color: Theme.StatusColor.error)
+                StatusChip(color: Theme.StatusColor.error, label: "Unavailable")
                 Text(error.userMessage)
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(Theme.StatusColor.error)
                     .lineLimit(1)
             }

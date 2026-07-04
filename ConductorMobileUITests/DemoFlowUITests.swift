@@ -24,9 +24,9 @@ final class DemoFlowUITests: XCTestCase {
         XCTAssertTrue(projectRow.waitForExistence(timeout: 10))
         attachScreenshot(app, name: "02-projects")
 
-        // Project detail: workspaces with status dots.
+        // Project detail: cover header + workspace cards with status chips. The title
+        // lives in the cover header now, not the navigation bar.
         projectRow.tap()
-        XCTAssertTrue(app.navigationBars["nebuchadnezzar"].waitForExistence(timeout: 10))
         let workspaceRow = app.staticTexts["free-the-mind"]
         XCTAssertTrue(workspaceRow.waitForExistence(timeout: 10))
         attachScreenshot(app, name: "03-project-detail")
