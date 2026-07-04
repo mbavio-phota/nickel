@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Renders one transcript message: a chat bubble when `displayText` finds recognizable
-/// text, otherwise a compact tappable "event chip" showing the raw type with a disclosure
-/// to the pretty-printed JSON.
+/// Renders one transcript message: a chat bubble when it's main-thread prose, otherwise
+/// a compact left-aligned event row (icon + title + monospaced snippet, in the style of
+/// the Conductor desktop timeline) with a disclosure to the pretty-printed JSON.
 struct MessageRow: View {
     let message: TranscriptMessage
     @State private var isRawJSONPresented = false
@@ -15,7 +15,7 @@ struct MessageRow: View {
                 Button {
                     isRawJSONPresented = true
                 } label: {
-                    EventChip(type: message.eventKind, detail: message.eventDetail)
+                    EventRow(summary: EventSummary.make(for: message))
                 }
                 .buttonStyle(.plain)
             }
@@ -79,30 +79,42 @@ private struct ChatBubble: View {
     }
 }
 
-private struct EventChip: View {
-    let type: String
-    var detail: String?
+/// A Conductor-desktop-style timeline row: leading icon, human title, and an optional
+/// one-line monospaced snippet (command, path, output). Red treatment for errors.
+private struct EventRow: View {
+    let summary: EventSummary
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "chevron.left.forwardslash.chevron.right")
-                .font(.caption2)
-            Text(type)
-                .font(Theme.monospace(12))
-            if let detail {
-                Text(detail)
+        HStack(spacing: 8) {
+            Image(systemName: summary.icon)
+                .font(.caption)
+                .foregroundStyle(summary.isError ? AnyShapeStyle(Theme.StatusColor.error) : AnyShapeStyle(.secondary))
+                .frame(width: 16)
+
+            Text(summary.title)
+                .font(.footnote)
+                .foregroundStyle(summary.isError ? AnyShapeStyle(Theme.StatusColor.error) : AnyShapeStyle(.secondary))
+                .lineLimit(1)
+                .layoutPriority(1)
+
+            if let snippet = summary.snippet {
+                Text(snippet)
                     .font(Theme.monospace(11))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(summary.isError ? AnyShapeStyle(Theme.StatusColor.error.opacity(0.85)) : AnyShapeStyle(.secondary))
                     .lineLimit(1)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        summary.isError ? AnyShapeStyle(Theme.StatusColor.error.opacity(0.12)) : AnyShapeStyle(.quaternary.opacity(0.5)),
+                        in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    )
             }
-            Image(systemName: "chevron.right")
-                .font(.caption2)
+
+            Spacer(minLength: 0)
         }
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.thinMaterial, in: Capsule())
-        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.vertical, 1)
+        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
