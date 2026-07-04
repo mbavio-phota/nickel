@@ -1,6 +1,6 @@
-# Conductor Mobile
+# Nickel
 
-An iOS companion app for [Conductor](https://www.conductor.build) — monitor and manage
+**Nickel** is an iOS companion app for [Conductor](https://www.conductor.build) — monitor and manage
 your projects, cloud workspaces, and coding-agent sessions from your phone via the
 [Conductor public API](https://api.conductor.build/v0/).
 
@@ -27,15 +27,15 @@ Requirements: Xcode 26+, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`bre
 
 ```bash
 xcodegen generate
-open ConductorMobile.xcodeproj   # or:
-xcodebuild -project ConductorMobile.xcodeproj -scheme ConductorMobile \
+open Nickel.xcodeproj   # or:
+xcodebuild -project Nickel.xcodeproj -scheme Nickel \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
 Tests (69 unit tests + an end-to-end demo-mode UI test that walks every screen):
 
 ```bash
-xcodebuild -project ConductorMobile.xcodeproj -scheme ConductorMobile \
+xcodebuild -project Nickel.xcodeproj -scheme Nickel \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
@@ -43,15 +43,15 @@ xcodebuild -project ConductorMobile.xcodeproj -scheme ConductorMobile \
 
 Pure SwiftUI + Observation, iOS 17+, zero third-party dependencies.
 
-- `ConductorMobile/API/` — `ConductorClient` protocol with two conformances:
+- `Nickel/API/` — `ConductorClient` protocol with two conformances:
   `LiveConductorClient` (URLSession + bearer auth) and `MockConductorClient` (seeded
   in-memory demo world used by demo mode, previews, and tests). `JSONValue` models the
   API's untyped message `content`; `ConductorError` normalizes the API's
   `StructuredError` body.
-- `ConductorMobile/App/` — `AppSession` auth state machine (unauthenticated / live /
+- `Nickel/App/` — `AppSession` auth state machine (unauthenticated / live /
   demo), `Theme` (Conductor orange, status colors, monospaced identifiers).
-- `ConductorMobile/Features/` — one folder per screen, `@Observable` view models.
-- `ConductorMobile/Support/` — `KeychainStore`, `Loadable`, polling helper, ISO-8601
+- `Nickel/Features/` — one folder per screen, `@Observable` view models.
+- `Nickel/Support/` — `KeychainStore`, `Loadable`, polling helper, ISO-8601
   formatters.
 
 The project file is generated — edit `project.yml`, never the `.xcodeproj`, and re-run

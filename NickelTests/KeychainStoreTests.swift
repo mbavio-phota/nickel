@@ -1,13 +1,13 @@
 import XCTest
 
-@testable import ConductorMobile
+@testable import Nickel
 
 /// Round-trips a real Keychain item inside the test host app. This is the regression test
 /// for the signed-in-but-couldn't-save bug: an unsigned app (no application identifier)
 /// gets errSecMissingEntitlement (-34018) from SecItemAdd, so this test only passes when
 /// the app is signed (ad-hoc `CODE_SIGN_IDENTITY: "-"` or better).
 final class KeychainStoreTests: XCTestCase {
-    private let store = KeychainStore(service: "dev.mrbavio.conductor-mobile.tests", account: "apiKey")
+    private let store = KeychainStore(service: "dev.mrbavio.nickel.tests", account: "apiKey")
 
     override func tearDown() {
         try? store.delete()

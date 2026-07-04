@@ -57,10 +57,10 @@ struct OnboardingView: View {
                     .foregroundStyle(.white)
             }
 
-            Text("Conductor")
+            Text("Nickel")
                 .font(.largeTitle.bold())
 
-            Text("Monitor and manage your fleets of coding agents from your phone.")
+            Text("Monitor and manage your Conductor coding agents from your phone.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
