@@ -9,6 +9,7 @@ struct ProjectDetailView: View {
     @State private var viewModel: ProjectDetailViewModel?
     @State private var isCreatePresented = false
     @State private var pushedWorkspace: Workspace?
+    @State private var isArchivedExpanded = false
 
     var body: some View {
         content
@@ -96,23 +97,36 @@ struct ProjectDetailView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
                 } else {
-                    ForEach(viewModel.workspaces) { workspace in
-                        NavigationLink(value: workspace) {
-                            WorkspaceCard(workspace: workspace, status: viewModel.statusesById[workspace.id])
-                                .task {
-                                    await viewModel.loadStatusIfNeeded(for: workspace.id)
-                                }
-                        }
-                        .buttonStyle(PressableStyle())
-                        .task {
-                            await viewModel.loadMoreIfNeeded(currentItem: workspace)
-                        }
+                    ForEach(viewModel.activeWorkspaces) { workspace in
+                        workspaceLink(workspace, viewModel: viewModel)
+                    }
+
+                    if viewModel.activeWorkspaces.isEmpty {
+                        Text("No active workspaces.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 24)
                     }
 
                     if viewModel.isLoadingMore {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
+                    }
+
+                    // Pagination sentinel: with the list grouped, "last visible card"
+                    // no longer means "last loaded workspace".
+                    if viewModel.hasMore {
+                        Color.clear
+                            .frame(height: 1)
+                            .task {
+                                await viewModel.loadMoreIfNeeded()
+                            }
+                    }
+
+                    if !viewModel.archivedWorkspaces.isEmpty {
+                        archivedSection(viewModel: viewModel)
                     }
                 }
             }
@@ -124,6 +138,56 @@ struct ProjectDetailView: View {
         }
         .navigationDestination(for: Workspace.self) { workspace in
             WorkspaceDetailView(workspace: workspace)
+        }
+    }
+
+    private func workspaceLink(_ workspace: Workspace, viewModel: ProjectDetailViewModel) -> some View {
+        NavigationLink(value: workspace) {
+            WorkspaceCard(workspace: workspace, status: viewModel.statusesById[workspace.id])
+                .task {
+                    await viewModel.loadStatusIfNeeded(for: workspace.id)
+                }
+        }
+        .buttonStyle(PressableStyle())
+    }
+
+    /// Collapsed-by-default home for archived workspaces, below the active list.
+    @ViewBuilder
+    private func archivedSection(viewModel: ProjectDetailViewModel) -> some View {
+        Button {
+            withAnimation(.snappy(duration: 0.25)) {
+                isArchivedExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "archivebox")
+                    .font(.subheadline)
+                Text("Archived")
+                    .font(.subheadline.weight(.medium))
+                Text("\(viewModel.archivedWorkspaces.count)")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(.quaternary.opacity(0.6), in: Capsule())
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .rotationEffect(.degrees(isArchivedExpanded ? 180 : 0))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 12)
+        .accessibilityLabel("Archived workspaces, \(viewModel.archivedWorkspaces.count)")
+
+        if isArchivedExpanded {
+            ForEach(viewModel.archivedWorkspaces) { workspace in
+                workspaceLink(workspace, viewModel: viewModel)
+                    .opacity(0.75)
+            }
         }
     }
 }
