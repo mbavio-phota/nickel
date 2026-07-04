@@ -29,6 +29,11 @@ struct SettingsView: View {
                         Button("Replace key") {
                             isReplaceKeyPresented = true
                         }
+                        if let warning = session.keyPersistenceWarning {
+                            Label(warning, systemImage: "exclamationmark.triangle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(Theme.StatusColor.error)
+                        }
                     }
 
                     Button("Sign out", role: .destructive) {

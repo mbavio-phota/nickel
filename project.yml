@@ -8,7 +8,10 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1"
-    CODE_SIGNING_ALLOWED: NO
+    # Ad-hoc "sign to run locally" — a real signature (and thus an application
+    # identifier) is required for Keychain writes even on the simulator. Set your
+    # team in Xcode's Signing pane to run on a physical device.
+    CODE_SIGN_IDENTITY: "-"
     CURRENT_PROJECT_VERSION: "1"
     MARKETING_VERSION: "1.0.0"
 

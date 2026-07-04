@@ -4,9 +4,19 @@ import Security
 /// Thin wrapper over the Keychain Services `SecItem*` APIs for persisting a single
 /// secret string (the Conductor API key) keyed by service + account.
 struct KeychainStore {
-    enum KeychainError: Error {
+    enum KeychainError: Error, LocalizedError {
         case unexpectedStatus(OSStatus)
         case unexpectedData
+
+        var errorDescription: String? {
+            switch self {
+            case .unexpectedStatus(let status):
+                let detail = SecCopyErrorMessageString(status, nil).map { $0 as String } ?? "unknown"
+                return "Keychain error \(status): \(detail)"
+            case .unexpectedData:
+                return "Keychain returned data in an unexpected format."
+            }
+        }
     }
 
     let service: String

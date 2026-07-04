@@ -15,6 +15,9 @@ final class AppSession {
     private(set) var state: State = .unauthenticated
     private(set) var isValidatingSignIn = false
     private(set) var signInError: ConductorError?
+    /// Non-fatal notice that the validated key couldn't be persisted (sign-in proceeds
+    /// for the current launch). Shown in Settings.
+    private(set) var keyPersistenceWarning: String?
 
     private let keychain: KeychainStore
     /// Factory so tests can inject a stub client instead of hitting the network.
@@ -61,11 +64,14 @@ final class AppSession {
             return
         }
 
+        // A validated key must never lock the user out over a persistence failure:
+        // proceed signed-in for this launch and surface the problem in Settings.
         do {
             try keychain.save(trimmedKey)
+            keyPersistenceWarning = nil
         } catch {
-            signInError = .transport(message: "Signed in, but couldn't save the key to Keychain: \(error.localizedDescription)")
-            return
+            keyPersistenceWarning =
+                "Couldn't save the key to Keychain, so you'll need to enter it again next launch. (\(error.localizedDescription))"
         }
 
         self.apiKey = trimmedKey
@@ -82,6 +88,7 @@ final class AppSession {
         try? keychain.delete()
         apiKey = nil
         signInError = nil
+        keyPersistenceWarning = nil
         state = .unauthenticated
     }
 
