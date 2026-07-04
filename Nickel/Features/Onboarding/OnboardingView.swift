@@ -14,9 +14,9 @@ struct OnboardingView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 32) {
+            VStack(spacing: 28) {
                 hero
-                    .padding(.top, 48)
+                    .padding(.top, 12)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("API key")
@@ -46,26 +46,30 @@ struct OnboardingView: View {
         .background(Color(uiColor: .systemBackground))
     }
 
+    /// Brand-drenched welcome: the one screen where the cover art IS the surface.
     private var hero: some View {
-        VStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Theme.accent.gradient)
-                    .frame(width: 72, height: 72)
+        ZStack(alignment: .bottomLeading) {
+            CoverArtView(seed: "nickel", palette: CoverArt.palettes[0])
+            CoverScrim()
+            VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: "waveform")
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: 34, weight: .semibold))
                     .foregroundStyle(.white)
+
+                Text("Nickel")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Text("Your Conductor agents, in your pocket. Monitor and manage fleets of coding agents from anywhere.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.9))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            Text("Nickel")
-                .font(.largeTitle.bold())
-
-            Text("Monitor and manage your Conductor coding agents from your phone.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+            .padding(24)
         }
+        .frame(height: 300)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .padding(.horizontal, 16)
     }
 
     private var apiKeyField: some View {
@@ -123,11 +127,14 @@ struct OnboardingView: View {
             isKeyFieldFocused = false
             session.enterDemo()
         } label: {
-            Text("Explore with demo data")
-                .font(.subheadline.weight(.medium))
+            Label("Explore with demo data", systemImage: "sparkles")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background(Theme.accent.opacity(0.12), in: Capsule())
+                .foregroundStyle(Theme.accent)
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
+        .buttonStyle(PressableStyle())
     }
 }
 

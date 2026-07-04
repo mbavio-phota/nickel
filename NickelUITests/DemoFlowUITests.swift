@@ -10,6 +10,9 @@ final class DemoFlowUITests: XCTestCase {
 
     func testDemoModeEndToEndFlow() throws {
         let app = XCUIApplication()
+        // Guarantee a signed-out first-run state even if the simulator's Keychain holds
+        // a real API key from manual use of the app.
+        app.launchArguments.append("--uitest-reset-state")
         app.launch()
 
         // Onboarding.
@@ -24,9 +27,9 @@ final class DemoFlowUITests: XCTestCase {
         XCTAssertTrue(projectRow.waitForExistence(timeout: 10))
         attachScreenshot(app, name: "02-projects")
 
-        // Project detail: workspaces with status dots.
+        // Project detail: cover header + workspace cards with status chips. The title
+        // lives in the cover header now, not the navigation bar.
         projectRow.tap()
-        XCTAssertTrue(app.navigationBars["nebuchadnezzar"].waitForExistence(timeout: 10))
         let workspaceRow = app.staticTexts["free-the-mind"]
         XCTAssertTrue(workspaceRow.waitForExistence(timeout: 10))
         attachScreenshot(app, name: "03-project-detail")
@@ -54,12 +57,13 @@ final class DemoFlowUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Idle"].waitForExistence(timeout: 30))
         // Wait for the demo agent's canned reply bubble itself, not just the Idle flip —
-        // the status and the transcript refresh land a poll apart.
+        // the status and the transcript refresh land a poll apart, and the idle
+        // transcript poll runs every 10s, so give it comfortable headroom.
         let replyPredicate = NSPredicate(
             format: "label CONTAINS 'I made the change' OR label CONTAINS 'pushed a fix' "
                 + "OR label CONTAINS 'what I found' OR label CONTAINS 'cleaned up a residual glitch'"
         )
-        XCTAssertTrue(app.staticTexts.matching(replyPredicate).firstMatch.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts.matching(replyPredicate).firstMatch.waitForExistence(timeout: 30))
         attachScreenshot(app, name: "07-agent-replied")
 
         // Settings sheet from the projects root.

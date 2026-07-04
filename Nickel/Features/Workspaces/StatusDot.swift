@@ -7,15 +7,16 @@ struct StatusDot: View {
     let color: Color
     var isPulsing: Bool = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulseVisible = false
 
     var body: some View {
         Circle()
             .fill(color)
             .frame(width: 8, height: 8)
-            .opacity(isPulsing ? (isPulseVisible ? 1.0 : 0.4) : 1.0)
+            .opacity(isPulsing && !reduceMotion ? (isPulseVisible ? 1.0 : 0.4) : 1.0)
             .onAppear {
-                guard isPulsing else {
+                guard isPulsing, !reduceMotion else {
                     return
                 }
                 withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {

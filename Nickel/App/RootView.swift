@@ -14,6 +14,9 @@ struct RootView: View {
                 MainView()
             }
         }
+        // One accent everywhere: links, back buttons, toggles, and pickers all speak
+        // Conductor orange instead of default blue.
+        .tint(Theme.accent)
     }
 }
 
