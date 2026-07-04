@@ -141,6 +141,9 @@ struct SessionDetailView: View {
                 }
                 .padding()
             }
+            // Dismiss the keyboard as soon as the user starts moving through the
+            // transcript, so it never sits over the content they're reading.
+            .scrollDismissesKeyboard(.immediately)
             .onChange(of: viewModel.messages.count) {
                 scrollToBottom(proxy: proxy, viewModel: viewModel)
             }
