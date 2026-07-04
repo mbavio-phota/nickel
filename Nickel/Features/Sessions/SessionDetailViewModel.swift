@@ -105,10 +105,16 @@ final class SessionDetailViewModel {
     }
 
     /// Publishes server messages (ordered by transcript index) plus any optimistic
-    /// messages the server hasn't echoed back yet. A server copy sharing an optimistic
-    /// message's id supersedes it.
+    /// messages the server hasn't echoed back yet. The live API assigns its own
+    /// transcript-event id to the echo and carries the client-generated `messageId` at
+    /// `content.id`, so optimistic copies are matched on either.
     private func reconcile() {
-        pendingOptimistic.removeAll { serverMessagesById[$0.id] != nil }
+        let confirmedClientIds = Set(
+            serverMessagesById.values.compactMap { $0.content["id"]?.stringValue }
+        )
+        pendingOptimistic.removeAll {
+            serverMessagesById[$0.id] != nil || confirmedClientIds.contains($0.id)
+        }
         let ordered = serverMessagesById.values.sorted {
             ($0.sessionIndex, $0.receivedAt) < ($1.sessionIndex, $1.receivedAt)
         }

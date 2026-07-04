@@ -73,8 +73,20 @@ function isFromUser(message) {
 
 function eventKind(message) {
   const raw = message.content?.rawPayload;
-  if (raw?.type) return raw.subtype ? `${raw.type} · ${raw.subtype}` : raw.type;
+  if (!raw) return message.type;
+  const blockType = raw.message?.content?.[0]?.type;
+  if (blockType && blockType !== "text") return blockType.replace(/_/g, " ");
+  if (raw.type) return raw.subtype ? `${raw.type} · ${raw.subtype}` : raw.type;
   return message.type;
+}
+
+function eventDetail(message) {
+  const raw = message.content?.rawPayload;
+  if (raw?.type !== "result") return null;
+  const parts = [];
+  if (typeof raw.total_cost_usd === "number") parts.push(`$${raw.total_cost_usd.toFixed(3)}`);
+  if (typeof raw.duration_ms === "number") parts.push(`${(raw.duration_ms / 1000).toFixed(1)}s`);
+  return parts.length ? parts.join(" · ") : null;
 }
 // ==== end shared logic ====
 
@@ -118,7 +130,8 @@ async function loadSession(sessionId) {
       el.style.display = "flex";
       const chip = document.createElement("div");
       chip.className = "chip";
-      chip.textContent = `</> ${eventKind(message)}`;
+      const detail = eventDetail(message);
+      chip.textContent = `</> ${eventKind(message)}${detail ? `  ${detail}` : ""}`;
       chip.onclick = () => inspect(message, chip);
       el.append(chip);
     }

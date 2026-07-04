@@ -134,16 +134,38 @@ struct TranscriptMessage: Codable, Equatable, Identifiable, Hashable {
     }
 
     /// A descriptive label for non-text events. Conductor's top-level `type` is a flat
-    /// "agent" for every SDK event, so prefer the wrapped event's own type/subtype
-    /// (`system · init`, `assistant`, `result`, ...) when present.
+    /// "agent" for every SDK event, so prefer the wrapped event's leading content-block
+    /// type ("tool use", "tool result") or its own type/subtype ("system · init",
+    /// "result · success") over that.
     var eventKind: String {
-        guard let rawType = content["rawPayload"]?["type"]?.stringValue else {
+        guard let raw = content["rawPayload"] else {
             return type
         }
-        if let subtype = content["rawPayload"]?["subtype"]?.stringValue {
+        if let blockType = raw["message"]?["content"]?[0]?["type"]?.stringValue, blockType != "text" {
+            return blockType.replacingOccurrences(of: "_", with: " ")
+        }
+        guard let rawType = raw["type"]?.stringValue else {
+            return type
+        }
+        if let subtype = raw["subtype"]?.stringValue {
             return "\(rawType) · \(subtype)"
         }
         return rawType
+    }
+
+    /// Compact stats shown on `result` chips: turn cost and duration.
+    var eventDetail: String? {
+        guard let raw = content["rawPayload"], raw["type"]?.stringValue == "result" else {
+            return nil
+        }
+        var parts: [String] = []
+        if let cost = raw["total_cost_usd"]?.numberValue {
+            parts.append(String(format: "$%.3f", cost))
+        }
+        if let milliseconds = raw["duration_ms"]?.numberValue {
+            parts.append(String(format: "%.1fs", milliseconds / 1000))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     static func == (lhs: TranscriptMessage, rhs: TranscriptMessage) -> Bool {

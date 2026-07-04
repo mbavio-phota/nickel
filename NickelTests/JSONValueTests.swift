@@ -225,6 +225,48 @@ final class JSONValueTests: XCTestCase {
         XCTAssertEqual(value.displayText, "Real prose.")
     }
 
+    func testPostgresStyleTimestampsParse() {
+        XCTAssertNotNil(Formatters.date(from: "2026-07-04 14:27:40.002976+00"), "microsecond variant")
+        XCTAssertNotNil(Formatters.date(from: "2026-07-04 14:28:19.429+00"), "millisecond variant")
+        XCTAssertNotNil(Formatters.date(from: "2026-07-04 14:28:19+00"), "no-fraction variant")
+        XCTAssertNotNil(Formatters.date(from: "2026-07-04T14:28:19.429Z"), "ISO-8601 still accepted")
+        XCTAssertNil(Formatters.date(from: "not a date"))
+    }
+
+    func testToolResultEventKindAndResultDetail() {
+        let toolResult = TranscriptMessage(
+            id: "m", sessionId: "s", sessionIndex: 0, type: "agent",
+            content: .object([
+                "rawPayload": .object([
+                    "type": .string("user"),
+                    "message": .object([
+                        "role": .string("user"),
+                        "content": .array([
+                            .object(["type": .string("tool_result"), "tool_use_id": .string("toolu_1")]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            receivedAt: "2026-07-04 14:28:19.429+00"
+        )
+        XCTAssertEqual(toolResult.eventKind, "tool result")
+
+        let result = TranscriptMessage(
+            id: "m2", sessionId: "s", sessionIndex: 1, type: "agent",
+            content: .object([
+                "rawPayload": .object([
+                    "type": .string("result"),
+                    "subtype": .string("success"),
+                    "total_cost_usd": .number(0.085044),
+                    "duration_ms": .number(1112),
+                ]),
+            ]),
+            receivedAt: "2026-07-04 14:28:19.429+00"
+        )
+        XCTAssertEqual(result.eventKind, "result · success")
+        XCTAssertEqual(result.eventDetail, "$0.085 · 1.1s")
+    }
+
     func testToolResultUserRoleEventIsNotFromUser() {
         // Claude Code delivers tool results as user-role SDK events; they must not
         // render as the human's own message.

@@ -15,7 +15,7 @@ struct MessageRow: View {
                 Button {
                     isRawJSONPresented = true
                 } label: {
-                    EventChip(type: message.eventKind)
+                    EventChip(type: message.eventKind, detail: message.eventDetail)
                 }
                 .buttonStyle(.plain)
             }
@@ -72,6 +72,7 @@ private struct ChatBubble: View {
 
 private struct EventChip: View {
     let type: String
+    var detail: String?
 
     var body: some View {
         HStack(spacing: 6) {
@@ -79,6 +80,11 @@ private struct EventChip: View {
                 .font(.caption2)
             Text(type)
                 .font(Theme.monospace(12))
+            if let detail {
+                Text(detail)
+                    .font(Theme.monospace(11))
+                    .foregroundStyle(.tertiary)
+            }
             Image(systemName: "chevron.right")
                 .font(.caption2)
         }

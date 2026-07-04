@@ -41,7 +41,15 @@ def get(path: str, params: dict | None = None) -> dict:
     url = BASE + path
     if params:
         url += "?" + urllib.parse.urlencode(params)
-    request = urllib.request.Request(url, headers={"Authorization": f"Bearer {api_key()}"})
+    # Cloudflare rejects urllib's default Python-urllib UA with a 1010 signature ban.
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {api_key()}",
+            "User-Agent": "nickel-transport-probe/1.0 (+https://github.com/mbavio-phota/nickel)",
+            "Accept": "application/json",
+        },
+    )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.load(response)
