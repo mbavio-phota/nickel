@@ -49,18 +49,18 @@ struct OnboardingView: View {
     /// Brand-drenched welcome: the one screen where the cover art IS the surface.
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
-            CoverArtView(seed: "conductor", palette: CoverArt.palettes[0])
+            CoverArtView(seed: "nickel", palette: CoverArt.palettes[0])
             CoverScrim()
             VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: "waveform")
                     .font(.system(size: 34, weight: .semibold))
                     .foregroundStyle(.white)
 
-                Text("Conductor")
+                Text("Nickel")
                     .font(.system(size: 40, weight: .bold))
                     .foregroundStyle(.white)
 
-                Text("Your agents, in your pocket. Monitor and manage fleets of coding agents from anywhere.")
+                Text("Your Conductor agents, in your pocket. Monitor and manage fleets of coding agents from anywhere.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.9))
                     .frame(maxWidth: .infinity, alignment: .leading)

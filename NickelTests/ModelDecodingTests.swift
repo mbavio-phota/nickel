@@ -1,5 +1,5 @@
 import XCTest
-@testable import ConductorMobile
+@testable import Nickel
 
 /// Decoding fixtures embedded as JSON literals matching `openapi.json` exactly, for every
 /// response shape the app decodes.

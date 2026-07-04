@@ -1,5 +1,5 @@
 import XCTest
-@testable import ConductorMobile
+@testable import Nickel
 
 final class MockConductorClientTests: XCTestCase {
     func testListProjectsReturnsSeededProjects() async throws {

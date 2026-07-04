@@ -22,7 +22,7 @@ struct KeychainStore {
     let service: String
     let account: String
 
-    init(service: String = "dev.mrbavio.conductor-mobile", account: String = "apiKey") {
+    init(service: String = "dev.mrbavio.nickel", account: String = "apiKey") {
         self.service = service
         self.account = account
     }

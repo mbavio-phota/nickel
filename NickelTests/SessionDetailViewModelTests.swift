@@ -1,6 +1,6 @@
 import XCTest
 
-@testable import ConductorMobile
+@testable import Nickel
 
 /// Behavior tests for the chat view model's optimistic-send reconciliation: the message
 /// sent with a client-generated `messageId` must be superseded by the server's echo, never

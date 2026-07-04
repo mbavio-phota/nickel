@@ -13,7 +13,7 @@ nudge, unblock, move on. Sessions are short and frequent.
 
 ## Product Purpose
 
-Conductor Mobile is the companion app to Conductor (conductor.build): browse projects,
+Nickel is the companion app to Conductor (conductor.build): browse projects,
 manage cloud workspaces, and chat with running coding-agent sessions via the public API.
 Success is a user who *enjoys* opening the app for a 30-second check-in — it should feel
 like visiting your agents, not like reading a server dashboard.

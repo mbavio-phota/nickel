@@ -1,6 +1,6 @@
 # Design
 
-Visual system for Conductor Mobile (SwiftUI, iOS 17+). Register: product. The shell is
+Visual system for Nickel (SwiftUI, iOS 17+). Register: product. The shell is
 expressive ("Hypelist energy"), the work surfaces are calm developer-tool.
 
 ## Color
