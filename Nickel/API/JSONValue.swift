@@ -109,9 +109,11 @@ extension JSONValue {
 
     /// Keys that commonly wrap human-readable text in agent transcript events, in
     /// priority order. Recursed into (not just read as strings) because providers nest
-    /// them arbitrarily, e.g. `{message: {content: [{type: "text", text: "..."}]}}`.
+    /// them arbitrarily — Conductor wraps Claude Code SDK events as
+    /// `{rawPayload: {message: {content: [{type: "text", text: "..."}]}}}`.
     private static let textCarrierKeys = [
-        "text", "message", "content", "parts", "blocks", "body", "output_text", "value",
+        "text", "message", "content", "rawPayload", "parts", "blocks", "body",
+        "output_text", "value",
     ]
 
     /// Best-effort human-readable text dug out of the shapes agent transcript events use.
@@ -139,7 +141,14 @@ extension JSONValue {
             }
             return nil
         case .array(let elements):
-            let pieces = elements.compactMap { $0.extractText(depth: depth + 1) }
+            // Arrays of typed blocks ({type: "text"} / {type: "tool_use"} / ...) only
+            // contribute their text blocks — digging into tool blocks would surface raw
+            // tool output as if it were prose.
+            let isTypedBlockArray = elements.contains { $0.objectValue?["type"]?.stringValue != nil }
+            let candidates = isTypedBlockArray
+                ? elements.filter { $0.objectValue?["type"]?.stringValue == "text" }
+                : elements
+            let pieces = candidates.compactMap { $0.extractText(depth: depth + 1) }
             return pieces.isEmpty ? nil : pieces.joined(separator: "\n")
         default:
             return nil

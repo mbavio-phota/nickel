@@ -123,12 +123,27 @@ struct TranscriptMessage: Codable, Equatable, Identifiable, Hashable {
 
     /// Whether this message was authored by the human. The API's `type` vocabulary is
     /// unschemad, so match any user-ish type ("user", "user_message", ...) and fall back
-    /// to a `role` field embedded in the content payload.
+    /// to a `role` field embedded in the content payload. Deliberately does NOT look at
+    /// `rawPayload.message.role` — Claude Code tool results arrive as user-role SDK
+    /// events and must not render as the human's own words.
     var isFromUser: Bool {
         if type.lowercased().contains("user") {
             return true
         }
         return content.roleValue?.lowercased() == "user"
+    }
+
+    /// A descriptive label for non-text events. Conductor's top-level `type` is a flat
+    /// "agent" for every SDK event, so prefer the wrapped event's own type/subtype
+    /// (`system · init`, `assistant`, `result`, ...) when present.
+    var eventKind: String {
+        guard let rawType = content["rawPayload"]?["type"]?.stringValue else {
+            return type
+        }
+        if let subtype = content["rawPayload"]?["subtype"]?.stringValue {
+            return "\(rawType) · \(subtype)"
+        }
+        return rawType
     }
 
     static func == (lhs: TranscriptMessage, rhs: TranscriptMessage) -> Bool {

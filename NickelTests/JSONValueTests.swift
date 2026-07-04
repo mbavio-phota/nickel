@@ -146,4 +146,106 @@ final class JSONValueTests: XCTestCase {
             message(type: "message", content: .object(["role": .string("assistant")])).isFromUser
         )
     }
+
+    // MARK: - Real Conductor payload shapes (captured from the live API 2026-07-04)
+
+    /// Condensed replica of a live Conductor "agent" message wrapping a Claude Code SDK
+    /// assistant event: text lives at rawPayload.message.content[].text.
+    private func conductorAssistantEvent(text: String) -> JSONValue {
+        .object([
+            "eventId": .string("evt:4:0"),
+            "turnId": .string("62F5B0FF"),
+            "type": .string("agent"),
+            "userMessageId": .string("62F5B0FF"),
+            "rawPayload": .object([
+                "type": .string("assistant"),
+                "session_id": .string("fcff15f0"),
+                "message": .object([
+                    "id": .string("msg_012NQ"),
+                    "role": .string("assistant"),
+                    "type": .string("message"),
+                    "model": .string("claude-sonnet-4-6"),
+                    "content": .array([
+                        .object(["type": .string("text"), "text": .string(text)]),
+                    ]),
+                ]),
+            ]),
+        ])
+    }
+
+    func testDisplayTextExtractsConductorAssistantEvent() {
+        let value = conductorAssistantEvent(text: "Hello! How can I help you today?")
+        XCTAssertEqual(value.displayText, "Hello! How can I help you today?")
+    }
+
+    func testConductorSystemInitEventStaysChipWithDescriptiveKind() {
+        let content = JSONValue.object([
+            "eventId": .string("evt:3:0"),
+            "type": .string("agent"),
+            "rawPayload": .object([
+                "type": .string("system"),
+                "subtype": .string("init"),
+                "model": .string("claude-sonnet-4-6"),
+                "tools": .array([.string("Task"), .string("Bash")]),
+            ]),
+        ])
+        XCTAssertNil(content.displayText, "init events carry no prose and must stay chips")
+
+        let message = TranscriptMessage(
+            id: "m", sessionId: "s", sessionIndex: 0, type: "agent", content: content,
+            receivedAt: "2026-07-04T10:00:00Z"
+        )
+        XCTAssertEqual(message.eventKind, "system · init")
+        XCTAssertFalse(message.isFromUser)
+    }
+
+    func testConductorAssistantEventKindAndAuthorship() {
+        let message = TranscriptMessage(
+            id: "m", sessionId: "s", sessionIndex: 0, type: "agent",
+            content: conductorAssistantEvent(text: "Hi."),
+            receivedAt: "2026-07-04T10:00:00Z"
+        )
+        XCTAssertEqual(message.eventKind, "assistant")
+        XCTAssertFalse(message.isFromUser)
+    }
+
+    func testTypedBlockArrayOnlyContributesTextBlocks() {
+        let value = JSONValue.array([
+            .object(["type": .string("text"), "text": .string("Real prose.")]),
+            .object([
+                "type": .string("tool_use"),
+                "name": .string("read_file"),
+                "input": .object(["text": .string("should not leak")]),
+            ]),
+            .object([
+                "type": .string("tool_result"),
+                "content": .string("giant tool output, should not leak"),
+            ]),
+        ])
+        XCTAssertEqual(value.displayText, "Real prose.")
+    }
+
+    func testToolResultUserRoleEventIsNotFromUser() {
+        // Claude Code delivers tool results as user-role SDK events; they must not
+        // render as the human's own message.
+        let message = TranscriptMessage(
+            id: "m", sessionId: "s", sessionIndex: 0, type: "agent",
+            content: .object([
+                "rawPayload": .object([
+                    "type": .string("user"),
+                    "message": .object([
+                        "role": .string("user"),
+                        "content": .array([
+                            .object([
+                                "type": .string("tool_result"),
+                                "tool_use_id": .string("toolu_1"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            receivedAt: "2026-07-04T10:00:00Z"
+        )
+        XCTAssertFalse(message.isFromUser)
+    }
 }

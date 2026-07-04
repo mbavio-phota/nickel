@@ -15,7 +15,7 @@ struct MessageRow: View {
                 Button {
                     isRawJSONPresented = true
                 } label: {
-                    EventChip(type: message.type)
+                    EventChip(type: message.eventKind)
                 }
                 .buttonStyle(.plain)
             }
