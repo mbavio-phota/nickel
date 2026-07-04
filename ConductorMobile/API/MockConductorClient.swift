@@ -350,10 +350,10 @@ actor MockConductorClient: ConductorClient {
     }
 
     private static let cannedReplies = [
-        "Done — I made the change and re-ran the tests, all green.",
-        "I've pushed a fix for that. Let me know if you'd like me to open a PR.",
-        "Took a look — here's what I found and the change I made to address it.",
-        "That's fixed now. I also cleaned up a related warning while I was in there.",
+        "Done — I made the change and re-ran the tests, all green. There is no spoon.",
+        "I've pushed a fix for that. Let me know if you'd like me to open a PR before the Sentinels find us.",
+        "Took a look — here's what I found and the change I made to address it. The Oracle saw it coming.",
+        "That's fixed now. I also cleaned up a residual glitch while I was in there — probably just a black cat.",
     ]
 }
 
@@ -378,144 +378,144 @@ extension MockConductorClient {
         }
 
         let projects = [
-            Project(id: "proj_retina", name: "retina", gitRemote: "git@github.com:photalabs/retina.git"),
-            Project(id: "proj_conductor", name: "conductor-mobile", gitRemote: "git@github.com:mrbavio/conductor-mobile.git"),
-            Project(id: "proj_site", name: "phota-site", gitRemote: "git@github.com:photalabs/phota-site.git"),
+            Project(id: "proj_neb", name: "nebuchadnezzar", gitRemote: "git@github.com:zion-fleet/nebuchadnezzar.git"),
+            Project(id: "proj_construct", name: "the-construct", gitRemote: "git@github.com:zion-fleet/the-construct.git"),
+            Project(id: "proj_zion", name: "zion-mainframe", gitRemote: "git@github.com:zion-fleet/zion-mainframe.git"),
         ]
 
-        // retina: 3 workspaces
+        // nebuchadnezzar: 3 workspaces
         let wsRetina1 = Workspace(
-            id: "ws_retina_1",
-            name: "fix-vendor-cost-attribution",
+            id: "ws_neb_1",
+            name: "free-the-mind",
             createdAt: iso(60 * 24 * 2),
-            deepLink: "conductor://workspace/ws_retina_1",
+            deepLink: "conductor://workspace/ws_neb_1",
             creatorId: "user_demo"
         )
         let wsRetina2 = Workspace(
-            id: "ws_retina_2",
-            name: "studio-chat-v2-search",
+            id: "ws_neb_2",
+            name: "jack-in-protocol",
             createdAt: iso(60 * 5),
-            deepLink: "conductor://workspace/ws_retina_2",
+            deepLink: "conductor://workspace/ws_neb_2",
             creatorId: "user_demo"
         )
         let wsRetina3 = Workspace(
-            id: "ws_retina_3",
-            name: "grafana-cost-dashboard",
+            id: "ws_neb_3",
+            name: "sentinel-early-warning",
             createdAt: iso(60 * 24 * 10),
-            deepLink: "conductor://workspace/ws_retina_3",
+            deepLink: "conductor://workspace/ws_neb_3",
             creatorId: "user_demo"
         )
 
-        // conductor-mobile: 2 workspaces
+        // the-construct: 2 workspaces
         let wsMobile1 = Workspace(
-            id: "ws_mobile_1",
-            name: "phase-1-scaffold",
+            id: "ws_construct_1",
+            name: "guns-lots-of-guns",
             createdAt: iso(20),
-            deepLink: "conductor://workspace/ws_mobile_1",
+            deepLink: "conductor://workspace/ws_construct_1",
             creatorId: "user_demo"
         )
         let wsMobile2 = Workspace(
-            id: "ws_mobile_2",
-            name: "session-polling-bugfix",
+            id: "ws_construct_2",
+            name: "deja-vu-patch",
             createdAt: iso(60 * 24 * 1),
-            deepLink: "conductor://workspace/ws_mobile_2",
+            deepLink: "conductor://workspace/ws_construct_2",
             creatorId: "user_demo"
         )
 
-        // phota-site: 1 workspace
+        // zion-mainframe: 1 workspace
         let wsSite1 = Workspace(
-            id: "ws_site_1",
-            name: "update-pricing-copy",
+            id: "ws_zion_1",
+            name: "dock-defense-turrets",
             createdAt: iso(60 * 24 * 30),
-            deepLink: "conductor://workspace/ws_site_1",
+            deepLink: "conductor://workspace/ws_zion_1",
             creatorId: "user_demo"
         )
 
         let workspacesByProject: [String: [Workspace]] = [
-            "proj_retina": [wsRetina1, wsRetina2, wsRetina3],
-            "proj_conductor": [wsMobile1, wsMobile2],
-            "proj_site": [wsSite1],
+            "proj_neb": [wsRetina1, wsRetina2, wsRetina3],
+            "proj_construct": [wsMobile1, wsMobile2],
+            "proj_zion": [wsSite1],
         ]
 
         let workspaceStatuses: [String: WorkspaceStatus] = [
-            "ws_retina_1": WorkspaceStatus(workspaceId: "ws_retina_1", status: .ready, lifecycleStep: nil, updatedAt: iso(5), errorMessage: nil),
-            "ws_retina_2": WorkspaceStatus(workspaceId: "ws_retina_2", status: .updating, lifecycleStep: .updating, updatedAt: iso(1), errorMessage: nil),
-            "ws_retina_3": WorkspaceStatus(workspaceId: "ws_retina_3", status: .sleeping, lifecycleStep: nil, updatedAt: iso(60 * 6), errorMessage: nil),
-            "ws_mobile_1": WorkspaceStatus(workspaceId: "ws_mobile_1", status: .initializing, lifecycleStep: .buildingSnapshot, updatedAt: iso(1), errorMessage: nil),
-            "ws_mobile_2": WorkspaceStatus(workspaceId: "ws_mobile_2", status: .ready, lifecycleStep: nil, updatedAt: iso(60 * 20), errorMessage: nil),
-            "ws_site_1": WorkspaceStatus(workspaceId: "ws_site_1", status: .archived, lifecycleStep: nil, updatedAt: iso(60 * 24 * 20), errorMessage: nil),
+            "ws_neb_1": WorkspaceStatus(workspaceId: "ws_neb_1", status: .ready, lifecycleStep: nil, updatedAt: iso(5), errorMessage: nil),
+            "ws_neb_2": WorkspaceStatus(workspaceId: "ws_neb_2", status: .updating, lifecycleStep: .updating, updatedAt: iso(1), errorMessage: nil),
+            "ws_neb_3": WorkspaceStatus(workspaceId: "ws_neb_3", status: .sleeping, lifecycleStep: nil, updatedAt: iso(60 * 6), errorMessage: nil),
+            "ws_construct_1": WorkspaceStatus(workspaceId: "ws_construct_1", status: .initializing, lifecycleStep: .buildingSnapshot, updatedAt: iso(1), errorMessage: nil),
+            "ws_construct_2": WorkspaceStatus(workspaceId: "ws_construct_2", status: .ready, lifecycleStep: nil, updatedAt: iso(60 * 20), errorMessage: nil),
+            "ws_zion_1": WorkspaceStatus(workspaceId: "ws_zion_1", status: .archived, lifecycleStep: nil, updatedAt: iso(60 * 24 * 20), errorMessage: nil),
         ]
 
-        let sessRetina1 = Session(id: "sess_retina_1", deepLink: "conductor://session/sess_retina_1", name: "Fix attribution gap", model: "claude-opus-4.6")
-        let sessRetina2a = Session(id: "sess_retina_2a", deepLink: "conductor://session/sess_retina_2a", name: "Add search endpoint", model: "claude-sonnet-5")
-        let sessRetina2b = Session(id: "sess_retina_2b", deepLink: "conductor://session/sess_retina_2b", name: "Vision paging follow-up", model: "claude-sonnet-5")
-        let sessRetina3 = Session(id: "sess_retina_3", deepLink: "conductor://session/sess_retina_3", name: "Dashboard readability", model: "claude-sonnet-5")
-        let sessMobile1 = Session(id: "sess_mobile_1", deepLink: "conductor://session/sess_mobile_1", name: "Scaffold project", model: "claude-sonnet-5")
-        let sessMobile2 = Session(id: "sess_mobile_2", deepLink: "conductor://session/sess_mobile_2", name: "Fix polling race", model: "codex-5")
-        let sessSite1 = Session(id: "sess_site_1", deepLink: "conductor://session/sess_site_1", name: "Pricing copy", model: nil)
+        let sessRetina1 = Session(id: "sess_neb_1", deepLink: "conductor://session/sess_neb_1", name: "Follow the white rabbit", model: "claude-opus-4.6")
+        let sessRetina2a = Session(id: "sess_neb_2a", deepLink: "conductor://session/sess_neb_2a", name: "Operator uplink", model: "claude-sonnet-5")
+        let sessRetina2b = Session(id: "sess_neb_2b", deepLink: "conductor://session/sess_neb_2b", name: "Residual self image", model: "claude-sonnet-5")
+        let sessRetina3 = Session(id: "sess_neb_3", deepLink: "conductor://session/sess_neb_3", name: "EMP readiness check", model: "claude-sonnet-5")
+        let sessMobile1 = Session(id: "sess_construct_1", deepLink: "conductor://session/sess_construct_1", name: "Load the jump program", model: "claude-sonnet-5")
+        let sessMobile2 = Session(id: "sess_construct_2", deepLink: "conductor://session/sess_construct_2", name: "Trace the black cat glitch", model: "codex-5")
+        let sessSite1 = Session(id: "sess_zion_1", deepLink: "conductor://session/sess_zion_1", name: "Turret calibration", model: nil)
 
         let sessionsByWorkspace: [String: [Session]] = [
-            "ws_retina_1": [sessRetina1],
-            "ws_retina_2": [sessRetina2a, sessRetina2b],
-            "ws_retina_3": [sessRetina3],
-            "ws_mobile_1": [sessMobile1],
-            "ws_mobile_2": [sessMobile2],
-            "ws_site_1": [sessSite1],
+            "ws_neb_1": [sessRetina1],
+            "ws_neb_2": [sessRetina2a, sessRetina2b],
+            "ws_neb_3": [sessRetina3],
+            "ws_construct_1": [sessMobile1],
+            "ws_construct_2": [sessMobile2],
+            "ws_zion_1": [sessSite1],
         ]
 
         let sessionWorkspaceIds: [String: String] = [
-            "sess_retina_1": "ws_retina_1",
-            "sess_retina_2a": "ws_retina_2",
-            "sess_retina_2b": "ws_retina_2",
-            "sess_retina_3": "ws_retina_3",
-            "sess_mobile_1": "ws_mobile_1",
-            "sess_mobile_2": "ws_mobile_2",
-            "sess_site_1": "ws_site_1",
+            "sess_neb_1": "ws_neb_1",
+            "sess_neb_2a": "ws_neb_2",
+            "sess_neb_2b": "ws_neb_2",
+            "sess_neb_3": "ws_neb_3",
+            "sess_construct_1": "ws_construct_1",
+            "sess_construct_2": "ws_construct_2",
+            "sess_zion_1": "ws_zion_1",
         ]
 
         let sessionStatuses: [String: SessionStatus] = [
-            "sess_retina_1": SessionStatus(workspaceId: "ws_retina_1", sessionId: "sess_retina_1", status: .idle, updatedAt: iso(4), errorMessage: nil),
-            "sess_retina_2a": SessionStatus(workspaceId: "ws_retina_2", sessionId: "sess_retina_2a", status: .working, updatedAt: iso(0), errorMessage: nil),
-            "sess_retina_2b": SessionStatus(workspaceId: "ws_retina_2", sessionId: "sess_retina_2b", status: .idle, updatedAt: iso(45), errorMessage: nil),
-            "sess_retina_3": SessionStatus(workspaceId: "ws_retina_3", sessionId: "sess_retina_3", status: .idle, updatedAt: iso(60 * 6), errorMessage: nil),
-            "sess_mobile_1": SessionStatus(workspaceId: "ws_mobile_1", sessionId: "sess_mobile_1", status: .idle, updatedAt: iso(1), errorMessage: nil),
-            "sess_mobile_2": SessionStatus(workspaceId: "ws_mobile_2", sessionId: "sess_mobile_2", status: .error, updatedAt: iso(60 * 19), errorMessage: "Agent crashed: workspace lost network connectivity."),
-            "sess_site_1": SessionStatus(workspaceId: "ws_site_1", sessionId: "sess_site_1", status: .idle, updatedAt: iso(60 * 24 * 20), errorMessage: nil),
+            "sess_neb_1": SessionStatus(workspaceId: "ws_neb_1", sessionId: "sess_neb_1", status: .idle, updatedAt: iso(4), errorMessage: nil),
+            "sess_neb_2a": SessionStatus(workspaceId: "ws_neb_2", sessionId: "sess_neb_2a", status: .working, updatedAt: iso(0), errorMessage: nil),
+            "sess_neb_2b": SessionStatus(workspaceId: "ws_neb_2", sessionId: "sess_neb_2b", status: .idle, updatedAt: iso(45), errorMessage: nil),
+            "sess_neb_3": SessionStatus(workspaceId: "ws_neb_3", sessionId: "sess_neb_3", status: .idle, updatedAt: iso(60 * 6), errorMessage: nil),
+            "sess_construct_1": SessionStatus(workspaceId: "ws_construct_1", sessionId: "sess_construct_1", status: .idle, updatedAt: iso(1), errorMessage: nil),
+            "sess_construct_2": SessionStatus(workspaceId: "ws_construct_2", sessionId: "sess_construct_2", status: .error, updatedAt: iso(60 * 19), errorMessage: "Connection severed: the operator dropped the landline."),
+            "sess_zion_1": SessionStatus(workspaceId: "ws_zion_1", sessionId: "sess_zion_1", status: .idle, updatedAt: iso(60 * 24 * 20), errorMessage: nil),
         ]
 
         // Realistic multi-message transcript mixing user text, agent text, and raw agent
-        // tool-call/event JSON, for sess_retina_1.
-        let transcriptRetina1: [TranscriptMessage] = [
+        // tool-call/event JSON, for sess_neb_1.
+        let transcriptNeb1: [TranscriptMessage] = [
             TranscriptMessage(
                 id: "msg_r1_1",
-                sessionId: "sess_retina_1",
+                sessionId: "sess_neb_1",
                 sessionIndex: 0,
                 type: "user",
-                content: .object(["text": .string("Vendor cost rows are landing unattributed for the new /images/filter-by-profile endpoint. Can you wire up VendorCallContext there?")]),
+                content: .object(["text": .string("Neo saw the same black cat twice in the Government Lobby sim — a déjà vu. I think the Agents changed something. Can you trace it?")]),
                 receivedAt: iso(30)
             ),
             TranscriptMessage(
                 id: "msg_r1_2",
-                sessionId: "sess_retina_1",
+                sessionId: "sess_neb_1",
                 sessionIndex: 1,
                 type: "agent_message",
-                content: .object(["text": .string("Looking at the endpoint now — checking whether it wraps its Gemini call tree in a vendor_call_context.")]),
+                content: .object(["text": .string("Tracing it now — checking whether the lobby render loop recycles entity seeds when geometry gets rewritten.")]),
                 receivedAt: iso(29)
             ),
             TranscriptMessage(
                 id: "msg_r1_3",
-                sessionId: "sess_retina_1",
+                sessionId: "sess_neb_1",
                 sessionIndex: 2,
                 type: "tool_call",
                 content: .object([
                     "tool": .string("read_file"),
-                    "args": .object(["path": .string("api/routes/images.py")]),
+                    "args": .object(["path": .string("simulacra/render/lobby_loop.c")]),
                 ]),
                 receivedAt: iso(28)
             ),
             TranscriptMessage(
                 id: "msg_r1_4",
-                sessionId: "sess_retina_1",
+                sessionId: "sess_neb_1",
                 sessionIndex: 3,
                 type: "tool_result",
                 content: .object([
@@ -526,134 +526,134 @@ extension MockConductorClient {
             ),
             TranscriptMessage(
                 id: "msg_r1_5",
-                sessionId: "sess_retina_1",
+                sessionId: "sess_neb_1",
                 sessionIndex: 4,
                 type: "agent_message",
-                content: .object(["text": .string("Confirmed — it's missing the wrapper. Adding `vendor_call_context_if_unset(surface=.search)` around the handler body and a matching `VendorCallSurface` member.")]),
+                content: .object(["text": .string("Confirmed — geometry rewrites recycle the entity cache, so the cat respawns with the same seed. Patching the cache invalidation and adding a glitch telemetry hook.")]),
                 receivedAt: iso(20)
             ),
             TranscriptMessage(
                 id: "msg_r1_6",
-                sessionId: "sess_retina_1",
+                sessionId: "sess_neb_1",
                 sessionIndex: 5,
                 type: "user",
-                content: .object(["text": .string("Sounds good. Run the surface audit when you're done.")]),
+                content: .object(["text": .string("Sounds good. Run the full lobby sweep when you're done.")]),
                 receivedAt: iso(15)
             ),
             TranscriptMessage(
                 id: "msg_r1_7",
-                sessionId: "sess_retina_1",
+                sessionId: "sess_neb_1",
                 sessionIndex: 6,
                 type: "agent_message",
-                content: .object(["text": .string("Done — `vendor_surface_audit` shows zero NULL-surface rows for the endpoint over the last hour of test traffic.")]),
+                content: .object(["text": .string("Done — `deja_vu_sweep` shows zero duplicate-entity frames across the last hour of lobby traffic.")]),
                 receivedAt: iso(4)
             ),
         ]
 
-        let transcriptMobile2: [TranscriptMessage] = [
+        let transcriptConstruct2: [TranscriptMessage] = [
             TranscriptMessage(
                 id: "msg_m2_1",
-                sessionId: "sess_mobile_2",
+                sessionId: "sess_construct_2",
                 sessionIndex: 0,
                 type: "user",
-                content: .object(["text": .string("The workspace status poll keeps firing after the view is gone. Can you check the .task cancellation?")]),
+                content: .object(["text": .string("The hardline exit at Wells & Lake keeps dropping mid-transfer. Can you check the uplink teardown?")]),
                 receivedAt: iso(60 * 20)
             ),
             TranscriptMessage(
                 id: "msg_m2_2",
-                sessionId: "sess_mobile_2",
+                sessionId: "sess_construct_2",
                 sessionIndex: 1,
                 type: "error",
                 content: .object([
-                    "message": .string("Agent crashed: workspace lost network connectivity."),
-                    "code": .string("workspace_disconnected"),
+                    "message": .string("Connection severed: the operator dropped the landline."),
+                    "code": .string("hardline_disconnected"),
                 ]),
                 receivedAt: iso(60 * 19)
             ),
         ]
 
         let messagesBySession: [String: [TranscriptMessage]] = [
-            "sess_retina_1": transcriptRetina1,
-            "sess_retina_2a": [
+            "sess_neb_1": transcriptNeb1,
+            "sess_neb_2a": [
                 TranscriptMessage(
                     id: "msg_r2a_1",
-                    sessionId: "sess_retina_2a",
+                    sessionId: "sess_neb_2a",
                     sessionIndex: 0,
                     type: "user",
-                    content: .object(["text": .string("Add the person-filter search endpoint per the WEB-171 plan.")]),
+                    content: .object(["text": .string("Patch the operator uplink so we can broadcast the jump program to the whole crew at once.")]),
                     receivedAt: iso(2)
                 ),
                 TranscriptMessage(
                     id: "msg_r2a_2",
-                    sessionId: "sess_retina_2a",
+                    sessionId: "sess_neb_2a",
                     sessionIndex: 1,
                     type: "agent_message",
-                    content: .object(["text": .string("On it — starting with the DetectionRecord.resolved_profile_id lookup.")]),
+                    content: .object(["text": .string("On it — starting with the broadcast handshake in the Nebuchadnezzar's core relay.")]),
                     receivedAt: iso(1)
                 ),
             ],
-            "sess_retina_2b": [
+            "sess_neb_2b": [
                 TranscriptMessage(
                     id: "msg_r2b_1",
-                    sessionId: "sess_retina_2b",
+                    sessionId: "sess_neb_2b",
                     sessionIndex: 0,
                     type: "user",
-                    content: .object(["text": .string("Follow up: paginate the vision tool so it doesn't blow the context window.")]),
+                    content: .object(["text": .string("Follow up: residual self image desyncs after long jacks — hair and clothes render a day stale.")]),
                     receivedAt: iso(50)
                 ),
                 TranscriptMessage(
                     id: "msg_r2b_2",
-                    sessionId: "sess_retina_2b",
+                    sessionId: "sess_neb_2b",
                     sessionIndex: 1,
                     type: "agent_message",
-                    content: .object(["text": .string("Added thumb540 paging via stash-by-toolCallId, keeping the client light.")]),
+                    content: .object(["text": .string("Fixed — RSI now re-derives from the last stable avatar snapshot instead of accumulating deltas.")]),
                     receivedAt: iso(45)
                 ),
             ],
-            "sess_retina_3": [
+            "sess_neb_3": [
                 TranscriptMessage(
                     id: "msg_r3_1",
-                    sessionId: "sess_retina_3",
+                    sessionId: "sess_neb_3",
                     sessionIndex: 0,
                     type: "user",
-                    content: .object(["text": .string("Cost dashboard labels are unreadable at the default zoom, can you fix the layout?")]),
+                    content: .object(["text": .string("Sentinels ping the hull every few hours. Can you audit the EMP arming checklist automation?")]),
                     receivedAt: iso(60 * 7)
                 ),
                 TranscriptMessage(
                     id: "msg_r3_2",
-                    sessionId: "sess_retina_3",
+                    sessionId: "sess_neb_3",
                     sessionIndex: 1,
                     type: "agent_message",
-                    content: .object(["text": .string("Fixed the units and label sizing, panel layout is cleaner now too.")]),
+                    content: .object(["text": .string("Audited — the arming interlock now refuses to charge while anyone is still jacked in.")]),
                     receivedAt: iso(60 * 6)
                 ),
             ],
-            "sess_mobile_1": [
+            "sess_construct_1": [
                 TranscriptMessage(
                     id: "msg_m1_1",
-                    sessionId: "sess_mobile_1",
+                    sessionId: "sess_construct_1",
                     sessionIndex: 0,
                     type: "user",
-                    content: .object(["text": .string("Scaffold the Phase 1 Xcode project per PLAN.md.")]),
+                    content: .object(["text": .string("Load the jump program and stage the rooftop scenario. Guns. Lots of guns.")]),
                     receivedAt: iso(2)
                 ),
             ],
-            "sess_mobile_2": transcriptMobile2,
-            "sess_site_1": [
+            "sess_construct_2": transcriptConstruct2,
+            "sess_zion_1": [
                 TranscriptMessage(
                     id: "msg_s1_1",
-                    sessionId: "sess_site_1",
+                    sessionId: "sess_zion_1",
                     sessionIndex: 0,
                     type: "user",
-                    content: .object(["text": .string("Update the pricing page copy for the new tier names.")]),
+                    content: .object(["text": .string("Recalibrate the dock turrets for the next wave — spread pattern was too tight in the last drill.")]),
                     receivedAt: iso(60 * 24 * 20)
                 ),
                 TranscriptMessage(
                     id: "msg_s1_2",
-                    sessionId: "sess_site_1",
+                    sessionId: "sess_zion_1",
                     sessionIndex: 1,
                     type: "agent_message",
-                    content: .object(["text": .string("Updated all three tiers and re-ran the copy linter.")]),
+                    content: .object(["text": .string("Recalibrated all quadrants and re-ran the drill sim — hit rate is up 18%.")]),
                     receivedAt: iso(60 * 24 * 20)
                 ),
             ],

@@ -137,32 +137,32 @@ final class MockConductorClientTests: XCTestCase {
 
     func testCancelSessionFlipsWorkingToIdle() async throws {
         let client = MockConductorClient()
-        // sess_retina_2a is seeded as `.working`.
-        let before = try await client.getSessionStatus(id: "sess_retina_2a")
+        // sess_neb_2a is seeded as `.working`.
+        let before = try await client.getSessionStatus(id: "sess_neb_2a")
         XCTAssertEqual(before.status, .working)
 
-        let response = try await client.cancelSession(id: "sess_retina_2a")
+        let response = try await client.cancelSession(id: "sess_neb_2a")
         XCTAssertEqual(response.status, .idle)
         XCTAssertEqual(response.canceledQueuedMessages, 1)
 
-        let after = try await client.getSessionStatus(id: "sess_retina_2a")
+        let after = try await client.getSessionStatus(id: "sess_neb_2a")
         XCTAssertEqual(after.status, .idle)
     }
 
     func testCancelSessionOnIdleSessionIsNoOp() async throws {
         let client = MockConductorClient()
-        // sess_retina_1 is seeded as `.idle`.
-        let response = try await client.cancelSession(id: "sess_retina_1")
+        // sess_neb_1 is seeded as `.idle`.
+        let response = try await client.cancelSession(id: "sess_neb_1")
         XCTAssertEqual(response.status, .idle)
         XCTAssertEqual(response.canceledQueuedMessages, 0)
     }
 
     func testRenameSessionUpdatesName() async throws {
         let client = MockConductorClient()
-        let renamed = try await client.renameSession(id: "sess_retina_1", name: "new-session-name")
+        let renamed = try await client.renameSession(id: "sess_neb_1", name: "new-session-name")
         XCTAssertEqual(renamed.name, "new-session-name")
 
-        let fetched = try await client.getSession(id: "sess_retina_1")
+        let fetched = try await client.getSession(id: "sess_neb_1")
         XCTAssertEqual(fetched.name, "new-session-name")
     }
 
@@ -170,16 +170,16 @@ final class MockConductorClientTests: XCTestCase {
     func testSendMessageEventuallyAppendsReply() async throws {
         let client = MockConductorClient(replyDelay: .milliseconds(50))
 
-        let before = try await client.listMessages(sessionId: "sess_retina_1", limit: nil, offset: nil)
+        let before = try await client.listMessages(sessionId: "sess_neb_1", limit: nil, offset: nil)
         let beforeCount = before.data.count
 
-        let response = try await client.sendMessage(sessionId: "sess_retina_1", message: "test message", messageId: nil)
+        let response = try await client.sendMessage(sessionId: "sess_neb_1", message: "test message", messageId: nil)
         XCTAssertEqual(response.state, .sent)
 
-        let statusDuringSend = try await client.getSessionStatus(id: "sess_retina_1")
+        let statusDuringSend = try await client.getSessionStatus(id: "sess_neb_1")
         XCTAssertEqual(statusDuringSend.status, .working)
 
-        let afterSend = try await client.listMessages(sessionId: "sess_retina_1", limit: nil, offset: nil)
+        let afterSend = try await client.listMessages(sessionId: "sess_neb_1", limit: nil, offset: nil)
         XCTAssertEqual(afterSend.data.count, beforeCount + 1)
         XCTAssertEqual(afterSend.data.last?.content.displayText, "test message")
 
@@ -188,7 +188,7 @@ final class MockConductorClientTests: XCTestCase {
         var finalMessages = afterSend
         for _ in 0..<20 {
             try await Task.sleep(for: .milliseconds(20))
-            finalMessages = try await client.listMessages(sessionId: "sess_retina_1", limit: nil, offset: nil)
+            finalMessages = try await client.listMessages(sessionId: "sess_neb_1", limit: nil, offset: nil)
             if finalMessages.data.count == beforeCount + 2 {
                 break
             }
@@ -198,7 +198,7 @@ final class MockConductorClientTests: XCTestCase {
         XCTAssertEqual(finalMessages.data.last?.type, "agent_message")
         XCTAssertNotNil(finalMessages.data.last?.content.displayText)
 
-        let finalStatus = try await client.getSessionStatus(id: "sess_retina_1")
+        let finalStatus = try await client.getSessionStatus(id: "sess_neb_1")
         XCTAssertEqual(finalStatus.status, .idle)
     }
 
@@ -215,6 +215,6 @@ final class MockConductorClientTests: XCTestCase {
     func testGetMessageReturnsSeededMessage() async throws {
         let client = MockConductorClient()
         let message = try await client.getMessage(id: "msg_r1_1")
-        XCTAssertEqual(message.sessionId, "sess_retina_1")
+        XCTAssertEqual(message.sessionId, "sess_neb_1")
     }
 }

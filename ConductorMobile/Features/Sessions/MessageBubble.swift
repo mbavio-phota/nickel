@@ -120,7 +120,7 @@ private struct RawEventView: View {
         VStack(spacing: 12) {
             MessageRow(message: TranscriptMessage(
                 id: "1", sessionId: "s", sessionIndex: 0, type: "user",
-                content: .object(["text": .string("Can you fix the vendor cost attribution gap?")]),
+                content: .object(["text": .string("Can you trace the déjà vu glitch in the lobby sim?")]),
                 receivedAt: ISO8601DateFormatter().string(from: Date())
             ))
             MessageRow(message: TranscriptMessage(
@@ -130,7 +130,7 @@ private struct RawEventView: View {
             ))
             MessageRow(message: TranscriptMessage(
                 id: "3", sessionId: "s", sessionIndex: 2, type: "tool_call",
-                content: .object(["tool": .string("read_file"), "args": .object(["path": .string("api/routes/images.py")])]),
+                content: .object(["tool": .string("read_file"), "args": .object(["path": .string("simulacra/render/lobby_loop.c")])]),
                 receivedAt: ISO8601DateFormatter().string(from: Date())
             ))
         }

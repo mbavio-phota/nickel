@@ -295,10 +295,10 @@ private struct SessionRow: View {
     session.enterDemo()
     return NavigationStack {
         WorkspaceDetailView(workspace: Workspace(
-            id: "ws_retina_1",
-            name: "fix-vendor-cost-attribution",
+            id: "ws_neb_1",
+            name: "free-the-mind",
             createdAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-172_800)),
-            deepLink: "conductor://workspace/ws_retina_1",
+            deepLink: "conductor://workspace/ws_neb_1",
             creatorId: "user_demo"
         ))
     }
@@ -310,10 +310,10 @@ private struct SessionRow: View {
     session.enterDemo()
     return NavigationStack {
         WorkspaceDetailView(workspace: Workspace(
-            id: "ws_mobile_1",
-            name: "phase-1-scaffold",
+            id: "ws_construct_1",
+            name: "guns-lots-of-guns",
             createdAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-1_200)),
-            deepLink: "conductor://workspace/ws_mobile_1",
+            deepLink: "conductor://workspace/ws_construct_1",
             creatorId: "user_demo"
         ))
     }
@@ -325,10 +325,10 @@ private struct SessionRow: View {
     session.enterDemo()
     return NavigationStack {
         WorkspaceDetailView(workspace: Workspace(
-            id: "ws_site_1",
-            name: "update-pricing-copy",
+            id: "ws_zion_1",
+            name: "dock-defense-turrets",
             createdAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-2_592_000)),
-            deepLink: "conductor://workspace/ws_site_1",
+            deepLink: "conductor://workspace/ws_zion_1",
             creatorId: "user_demo"
         ))
     }

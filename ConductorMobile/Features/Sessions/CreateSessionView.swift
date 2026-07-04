@@ -88,7 +88,7 @@ struct CreateSessionView: View {
 }
 
 #Preview {
-    CreateSessionView(workspaceId: "ws_retina_1", onCreated: { _ in })
+    CreateSessionView(workspaceId: "ws_neb_1", onCreated: { _ in })
         .environment({
             let session = AppSession()
             session.enterDemo()

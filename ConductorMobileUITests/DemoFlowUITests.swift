@@ -20,21 +20,21 @@ final class DemoFlowUITests: XCTestCase {
 
         // Projects list.
         XCTAssertTrue(app.navigationBars["Projects"].waitForExistence(timeout: 10))
-        let retinaRow = app.staticTexts["retina"]
-        XCTAssertTrue(retinaRow.waitForExistence(timeout: 10))
+        let projectRow = app.staticTexts["nebuchadnezzar"]
+        XCTAssertTrue(projectRow.waitForExistence(timeout: 10))
         attachScreenshot(app, name: "02-projects")
 
         // Project detail: workspaces with status dots.
-        retinaRow.tap()
-        XCTAssertTrue(app.navigationBars["retina"].waitForExistence(timeout: 10))
-        let workspaceRow = app.staticTexts["fix-vendor-cost-attribution"]
+        projectRow.tap()
+        XCTAssertTrue(app.navigationBars["nebuchadnezzar"].waitForExistence(timeout: 10))
+        let workspaceRow = app.staticTexts["free-the-mind"]
         XCTAssertTrue(workspaceRow.waitForExistence(timeout: 10))
         attachScreenshot(app, name: "03-project-detail")
 
         // Workspace detail: status card + sessions.
         workspaceRow.tap()
         XCTAssertTrue(app.staticTexts["Ready"].waitForExistence(timeout: 10))
-        let sessionRow = app.staticTexts["Fix attribution gap"]
+        let sessionRow = app.staticTexts["Follow the white rabbit"]
         XCTAssertTrue(sessionRow.waitForExistence(timeout: 10))
         attachScreenshot(app, name: "04-workspace-detail")
 
@@ -47,7 +47,7 @@ final class DemoFlowUITests: XCTestCase {
 
         // Send a message; the demo agent flips to Working, then replies ~6s later.
         composer.tap()
-        composer.typeText("Also add a unit test for the attribution edge case")
+        composer.typeText("Also patch the spoon so it does not bend back")
         app.buttons["Send"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Working"].waitForExistence(timeout: 10))
         attachScreenshot(app, name: "06-agent-working")
@@ -57,7 +57,7 @@ final class DemoFlowUITests: XCTestCase {
         // the status and the transcript refresh land a poll apart.
         let replyPredicate = NSPredicate(
             format: "label CONTAINS 'I made the change' OR label CONTAINS 'pushed a fix' "
-                + "OR label CONTAINS 'what I found' OR label CONTAINS 'cleaned up a related warning'"
+                + "OR label CONTAINS 'what I found' OR label CONTAINS 'cleaned up a residual glitch'"
         )
         XCTAssertTrue(app.staticTexts.matching(replyPredicate).firstMatch.waitForExistence(timeout: 15))
         attachScreenshot(app, name: "07-agent-replied")

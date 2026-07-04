@@ -295,9 +295,9 @@ private struct Composer: View {
     appSession.enterDemo()
     return NavigationStack {
         SessionDetailView(session: Session(
-            id: "sess_retina_1",
-            deepLink: "conductor://session/sess_retina_1",
-            name: "Fix attribution gap",
+            id: "sess_neb_1",
+            deepLink: "conductor://session/sess_neb_1",
+            name: "Follow the white rabbit",
             model: "claude-opus-4.6"
         ))
     }
@@ -309,9 +309,9 @@ private struct Composer: View {
     appSession.enterDemo()
     return NavigationStack {
         SessionDetailView(session: Session(
-            id: "sess_retina_2a",
-            deepLink: "conductor://session/sess_retina_2a",
-            name: "Add search endpoint",
+            id: "sess_neb_2a",
+            deepLink: "conductor://session/sess_neb_2a",
+            name: "Operator uplink",
             model: "claude-sonnet-5"
         ))
     }
@@ -323,9 +323,9 @@ private struct Composer: View {
     appSession.enterDemo()
     return NavigationStack {
         SessionDetailView(session: Session(
-            id: "sess_mobile_2",
-            deepLink: "conductor://session/sess_mobile_2",
-            name: "Fix polling race",
+            id: "sess_construct_2",
+            deepLink: "conductor://session/sess_construct_2",
+            name: "Trace the black cat glitch",
             model: "codex-5"
         ))
     }

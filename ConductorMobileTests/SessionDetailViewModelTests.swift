@@ -10,9 +10,9 @@ final class SessionDetailViewModelTests: XCTestCase {
     private func makeViewModel(replyDelay: Duration = .milliseconds(50)) -> SessionDetailViewModel {
         let client = MockConductorClient(replyDelay: replyDelay)
         let session = Session(
-            id: "sess_retina_1",
-            deepLink: "conductor://session/sess_retina_1",
-            name: "Fix attribution gap",
+            id: "sess_neb_1",
+            deepLink: "conductor://session/sess_neb_1",
+            name: "Follow the white rabbit",
             model: "claude-opus-4.6"
         )
         return SessionDetailViewModel(session: session, client: client)

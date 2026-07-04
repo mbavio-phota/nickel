@@ -165,7 +165,7 @@ private struct WorkspaceRow: View {
     let session = AppSession()
     session.enterDemo()
     return NavigationStack {
-        ProjectDetailView(project: Project(id: "proj_retina", name: "retina", gitRemote: "git@github.com:photalabs/retina.git"))
+        ProjectDetailView(project: Project(id: "proj_neb", name: "nebuchadnezzar", gitRemote: "git@github.com:zion-fleet/nebuchadnezzar.git"))
     }
     .environment(session)
 }

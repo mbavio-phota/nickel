@@ -99,7 +99,7 @@ struct CreateWorkspaceView: View {
 
 #Preview {
     CreateWorkspaceView(
-        project: Project(id: "proj_retina", name: "retina", gitRemote: "git@github.com:photalabs/retina.git"),
+        project: Project(id: "proj_neb", name: "nebuchadnezzar", gitRemote: "git@github.com:zion-fleet/nebuchadnezzar.git"),
         onCreated: { _ in }
     )
     .environment({
