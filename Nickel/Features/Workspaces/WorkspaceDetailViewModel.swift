@@ -12,12 +12,18 @@ final class WorkspaceDetailViewModel {
     private(set) var sessionStatusesById: [String: SessionStatus] = [:]
     private(set) var hasMoreSessions = false
     private(set) var isLoadingMoreSessions = false
+    /// Set when a load-more request fails: pagination pauses behind an explicit Retry
+    /// affordance instead of silently truncating the list.
+    private(set) var loadMoreSessionsFailed = false
     private(set) var isRenaming = false
     private(set) var isArchiving = false
     private(set) var actionError: ConductorError?
 
     private let client: ConductorClient
     private let pageSize = 20
+    /// Bumped on every refresh; in-flight requests from an older generation discard
+    /// their results instead of clobbering (or appending to) the fresher list.
+    private var generation = 0
 
     init(workspace: Workspace, client: ConductorClient) {
         self.workspace = workspace
@@ -89,16 +95,33 @@ final class WorkspaceDetailViewModel {
     }
 
     func refreshSessions() async {
-        sessionsLoadable = .loading
+        generation += 1
+        let requestGeneration = generation
+        // Keep already-loaded rows on screen during pull-to-refresh — only show the
+        // full-screen spinner when there is nothing to show yet.
+        if sessionsLoadable.value == nil {
+            sessionsLoadable = .loading
+        }
         do {
             let page = try await client.listSessions(workspaceId: workspace.id, limit: pageSize, offset: nil)
+            guard requestGeneration == generation else {
+                return
+            }
             sessionsLoadable = .loaded(page.data)
             hasMoreSessions = page.hasMore
-            sessionStatusesById = [:]
+            loadMoreSessionsFailed = false
+            // Let fresh statuses overwrite stale entries rather than wiping the cache
+            // and flashing placeholders while they're refetched.
             await loadSessionStatuses(for: page.data)
         } catch let error as ConductorError {
+            guard requestGeneration == generation else {
+                return
+            }
             sessionsLoadable = .failed(error)
         } catch {
+            guard requestGeneration == generation else {
+                return
+            }
             sessionsLoadable = .failed(.transport(message: error.localizedDescription))
         }
     }
@@ -106,19 +129,38 @@ final class WorkspaceDetailViewModel {
     /// Loads the next page. Triggered by a sentinel at the end of the list (status
     /// ordering means the last visible card is not necessarily the last loaded session).
     func loadMoreSessionsIfNeeded() async {
+        guard hasMoreSessions, !isLoadingMoreSessions, !loadMoreSessionsFailed else {
+            return
+        }
+        await loadMoreSessions()
+    }
+
+    func retryLoadMoreSessions() async {
         guard hasMoreSessions, !isLoadingMoreSessions else {
             return
         }
+        loadMoreSessionsFailed = false
+        await loadMoreSessions()
+    }
+
+    private func loadMoreSessions() async {
+        let requestGeneration = generation
         isLoadingMoreSessions = true
         defer { isLoadingMoreSessions = false }
 
         do {
             let page = try await client.listSessions(workspaceId: workspace.id, limit: pageSize, offset: sessions.count)
+            guard requestGeneration == generation else {
+                return
+            }
             sessionsLoadable = .loaded(sessions + page.data)
             hasMoreSessions = page.hasMore
             await loadSessionStatuses(for: page.data)
         } catch {
-            hasMoreSessions = false
+            guard requestGeneration == generation else {
+                return
+            }
+            loadMoreSessionsFailed = true
         }
     }
 
@@ -148,6 +190,9 @@ final class WorkspaceDetailViewModel {
     }
 
     func rename(to newName: String) async -> Bool {
+        guard !isRenaming else {
+            return false
+        }
         isRenaming = true
         actionError = nil
         defer { isRenaming = false }
@@ -165,6 +210,9 @@ final class WorkspaceDetailViewModel {
     }
 
     func archive() async -> Bool {
+        guard !isArchiving else {
+            return false
+        }
         isArchiving = true
         actionError = nil
         defer { isArchiving = false }

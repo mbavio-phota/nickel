@@ -36,7 +36,10 @@ struct WorkspaceDetailView: View {
             guard let viewModel else {
                 return
             }
-            await poll(every: .seconds(5), while: { viewModel.shouldPollStatus }) {
+            // Keep polling for the life of the screen, not just until the first stable
+            // status: a later server-side transition (e.g. ready → updating) still needs
+            // to be picked up, just at a slower cadence once nothing is in flux.
+            await poll(every: { viewModel.shouldPollStatus ? .seconds(5) : .seconds(20) }, while: { true }) {
                 await viewModel.loadStatus()
             }
         }
@@ -253,6 +256,17 @@ struct WorkspaceDetailView: View {
             ProgressView()
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
+        }
+
+        if viewModel.loadMoreSessionsFailed {
+            Button {
+                Task { await viewModel.retryLoadMoreSessions() }
+            } label: {
+                Label("Couldn't load more — retry", systemImage: "arrow.clockwise")
+                    .font(.footnote.weight(.semibold))
+            }
+            .buttonStyle(.bordered)
+            .padding(.vertical, 8)
         }
 
         // Pagination sentinel: with status ordering, the last visible card is not

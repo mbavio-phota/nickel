@@ -51,11 +51,16 @@ struct SessionDetailView: View {
             }
             await viewModel?.loadInitial()
         }
-        .task(id: viewModel?.isWorking) {
+        .task(id: viewModel == nil) {
             guard let viewModel else {
                 return
             }
-            await poll(every: viewModel.pollInterval, while: { true }) {
+            // Keyed on whether the view model exists (set once in the `.task` above), not
+            // on `isWorking`: that flag is mutated by `pollStatusAndMessages` itself, and
+            // restarting this task on every flip risked SwiftUI cancelling the in-flight
+            // poll between the status update and the message refresh that follows it —
+            // leaving the transcript stuck without the reply that just arrived.
+            await poll(every: { viewModel.pollInterval }, while: { true }) {
                 await viewModel.pollStatusAndMessages()
             }
         }
@@ -130,7 +135,7 @@ struct SessionDetailView: View {
                     }
 
                     ForEach(viewModel.messages) { message in
-                        MessageRow(message: message)
+                        MessageRow(message: message, optimisticState: viewModel.optimisticMessageStatesById[message.id])
                             .id(message.id)
                     }
 
@@ -152,6 +157,9 @@ struct SessionDetailView: View {
             }
             .onAppear {
                 scrollToBottom(proxy: proxy, viewModel: viewModel, animated: false)
+            }
+            .refreshable {
+                await viewModel.pollStatusAndMessages()
             }
         }
     }

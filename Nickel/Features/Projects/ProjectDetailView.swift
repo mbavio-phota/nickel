@@ -115,6 +115,17 @@ struct ProjectDetailView: View {
                             .padding(.vertical, 12)
                     }
 
+                    if viewModel.loadMoreFailed {
+                        Button {
+                            Task { await viewModel.retryLoadMore() }
+                        } label: {
+                            Label("Couldn't load more — retry", systemImage: "arrow.clockwise")
+                                .font(.footnote.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .padding(.vertical, 8)
+                    }
+
                     // Pagination sentinel: with the list grouped, "last visible card"
                     // no longer means "last loaded workspace".
                     if viewModel.hasMore {

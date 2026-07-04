@@ -23,14 +23,14 @@ final class LiveConductorClient: ConductorClient, @unchecked Sendable {
     }
 
     func getProject(id: String) async throws -> Project {
-        try await get(path: "/v0/projects/\(id)")
+        try await get(path: "/v0/projects/\(pathSegment(id))")
     }
 
     // MARK: - Workspaces
 
     func listWorkspaces(projectId: String, limit: Int?, offset: Int?) async throws -> Page<Workspace> {
         try await get(
-            path: "/v0/projects/\(projectId)/workspaces",
+            path: "/v0/projects/\(pathSegment(projectId))/workspaces",
             query: paginationQuery(limit: limit, offset: offset)
         )
     }
@@ -40,26 +40,26 @@ final class LiveConductorClient: ConductorClient, @unchecked Sendable {
     }
 
     func getWorkspace(id: String) async throws -> Workspace {
-        try await get(path: "/v0/workspaces/\(id)")
+        try await get(path: "/v0/workspaces/\(pathSegment(id))")
     }
 
     func renameWorkspace(id: String, name: String) async throws -> Workspace {
-        try await post(path: "/v0/workspaces/\(id)/rename", body: RenameRequest(name: name))
+        try await post(path: "/v0/workspaces/\(pathSegment(id))/rename", body: RenameRequest(name: name))
     }
 
     func archiveWorkspace(id: String) async throws -> WorkspaceArchiveResponse {
-        try await postEmpty(path: "/v0/workspaces/\(id)/archive")
+        try await postEmpty(path: "/v0/workspaces/\(pathSegment(id))/archive")
     }
 
     func getWorkspaceStatus(id: String) async throws -> WorkspaceStatus {
-        try await get(path: "/v0/workspaces/\(id)/status")
+        try await get(path: "/v0/workspaces/\(pathSegment(id))/status")
     }
 
     // MARK: - Sessions
 
     func listSessions(workspaceId: String, limit: Int?, offset: Int?) async throws -> Page<Session> {
         try await get(
-            path: "/v0/workspaces/\(workspaceId)/sessions",
+            path: "/v0/workspaces/\(pathSegment(workspaceId))/sessions",
             query: paginationQuery(limit: limit, offset: offset)
         )
     }
@@ -69,42 +69,50 @@ final class LiveConductorClient: ConductorClient, @unchecked Sendable {
     }
 
     func getSession(id: String) async throws -> Session {
-        try await get(path: "/v0/sessions/\(id)")
+        try await get(path: "/v0/sessions/\(pathSegment(id))")
     }
 
     func renameSession(id: String, name: String) async throws -> Session {
-        try await post(path: "/v0/sessions/\(id)/rename", body: RenameRequest(name: name))
+        try await post(path: "/v0/sessions/\(pathSegment(id))/rename", body: RenameRequest(name: name))
     }
 
     func getSessionStatus(id: String) async throws -> SessionStatus {
-        try await get(path: "/v0/sessions/\(id)/status")
+        try await get(path: "/v0/sessions/\(pathSegment(id))/status")
     }
 
     func cancelSession(id: String) async throws -> SessionCancelResponse {
-        try await postEmpty(path: "/v0/sessions/\(id)/cancel")
+        try await postEmpty(path: "/v0/sessions/\(pathSegment(id))/cancel")
     }
 
     // MARK: - Messages
 
     func listMessages(sessionId: String, limit: Int?, offset: Int?) async throws -> Page<TranscriptMessage> {
         try await get(
-            path: "/v0/sessions/\(sessionId)/messages",
+            path: "/v0/sessions/\(pathSegment(sessionId))/messages",
             query: paginationQuery(limit: limit, offset: offset)
         )
     }
 
     func sendMessage(sessionId: String, message: String, messageId: String?) async throws -> MessageCreateResponse {
         try await post(
-            path: "/v0/sessions/\(sessionId)/messages",
+            path: "/v0/sessions/\(pathSegment(sessionId))/messages",
             body: SendMessageRequest(messageId: messageId, message: message)
         )
     }
 
     func getMessage(id: String) async throws -> TranscriptMessage {
-        try await get(path: "/v0/messages/\(id)")
+        try await get(path: "/v0/messages/\(pathSegment(id))")
     }
 
     // MARK: - Request building
+
+    /// Percent-encodes a dynamic path segment (an id interpolated into a path string) so
+    /// that characters like `/` or `?` can't split or extend the intended path.
+    private func pathSegment(_ id: String) -> String {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/")
+        return id.addingPercentEncoding(withAllowedCharacters: allowed) ?? id
+    }
 
     private func paginationQuery(limit: Int?, offset: Int?) -> [String: String] {
         var query: [String: String] = [:]

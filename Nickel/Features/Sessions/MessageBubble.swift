@@ -5,12 +5,20 @@ import SwiftUI
 /// the Conductor desktop timeline) with a disclosure to the pretty-printed JSON.
 struct MessageRow: View {
     let message: TranscriptMessage
+    /// Delivery state for an optimistic (not-yet-echoed) message, if this row is one.
+    /// `nil` for server-confirmed messages, which never show a delivery footer.
+    var optimisticState: OptimisticMessageState? = nil
     @State private var isRawJSONPresented = false
 
     var body: some View {
         Group {
             if message.rendersAsBubble, let text = message.content.displayText, !text.isEmpty {
-                ChatBubble(text: text, isUser: message.isFromUser, timestamp: message.receivedDate)
+                ChatBubble(
+                    text: text,
+                    isUser: message.isFromUser,
+                    timestamp: message.receivedDate,
+                    optimisticState: optimisticState
+                )
             } else {
                 Button {
                     isRawJSONPresented = true
@@ -37,6 +45,7 @@ private struct ChatBubble: View {
     let text: String
     let isUser: Bool
     let timestamp: Date?
+    var optimisticState: OptimisticMessageState? = nil
 
     /// Agent replies are markdown; render inline styling (bold, italics, code spans)
     /// while preserving line structure. Falls back to the plain text on parse failure.
@@ -64,7 +73,17 @@ private struct ChatBubble: View {
                         in: RoundedRectangle(cornerRadius: 18, style: .continuous)
                     )
 
-                if let timestamp {
+                if optimisticState == .canceled {
+                    Text("Not delivered — canceled")
+                        .font(.caption)
+                        .foregroundStyle(Theme.StatusColor.error)
+                        .padding(.horizontal, 4)
+                } else if optimisticState == .queued {
+                    Text("Queued")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                } else if let timestamp {
                     Text(timestamp, format: .relative(presentation: .named))
                         .font(.caption2)
                         .foregroundStyle(.secondary)

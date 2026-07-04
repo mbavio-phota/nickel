@@ -85,6 +85,22 @@ final class LiveConductorClientTests: XCTestCase {
         await fulfillment(of: [expectation], timeout: 1)
     }
 
+    func testGetWorkspacePercentEncodesIdInPath() async throws {
+        let expectation = expectation(description: "request captured")
+        URLProtocolStub.stub = .init(
+            statusCode: 200,
+            responseBody: Data("""
+            {"id": "ws_1", "name": "ws", "createdAt": "2026-06-24T12:00:00.000Z", "deepLink": "conductor://workspace/ws_1"}
+            """.utf8)
+        ) { request in
+            XCTAssertEqual(request.url?.path, "/v0/workspaces/abc%2Fdef")
+            expectation.fulfill()
+        }
+
+        _ = try await client.getWorkspace(id: "abc/def")
+        await fulfillment(of: [expectation], timeout: 1)
+    }
+
     func testRenameWorkspaceBuildsCorrectPathAndBody() async throws {
         let expectation = expectation(description: "request captured")
         URLProtocolStub.stub = .init(
@@ -254,6 +270,38 @@ final class LiveConductorClientTests: XCTestCase {
         } catch let error as ConductorError {
             XCTAssertEqual(error.statusCode, 503)
             XCTAssertFalse(error.userMessage.isEmpty)
+        }
+    }
+
+    func testHTMLErrorBodyProducesGenericMessage() async throws {
+        URLProtocolStub.stub = .init(
+            statusCode: 500,
+            responseBody: Data("""
+            <!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>
+            """.utf8)
+        )
+
+        do {
+            _ = try await client.listProjects(limit: nil, offset: nil)
+            XCTFail("Expected an error")
+        } catch let error as ConductorError {
+            XCTAssertEqual(error.statusCode, 500)
+            XCTAssertEqual(error.userMessage, "Request failed (500).")
+        }
+    }
+
+    func testPlainTextErrorBodyStillSurfacesItsText() async throws {
+        URLProtocolStub.stub = .init(
+            statusCode: 503,
+            responseBody: Data("Service temporarily unavailable.".utf8)
+        )
+
+        do {
+            _ = try await client.listProjects(limit: nil, offset: nil)
+            XCTFail("Expected an error")
+        } catch let error as ConductorError {
+            XCTAssertEqual(error.statusCode, 503)
+            XCTAssertEqual(error.userMessage, "Service temporarily unavailable.")
         }
     }
 
