@@ -1,6 +1,14 @@
 import Foundation
 import Observation
 
+/// Delivery state of an optimistically-sent message, tracked until the server echo
+/// (or a cancel) resolves it.
+enum OptimisticMessageState {
+    case queued
+    case sent
+    case canceled
+}
+
 /// Drives the session chat screen: message transcript with pagination, status polling,
 /// optimistic send, and cancel.
 @MainActor
@@ -13,6 +21,10 @@ final class SessionDetailViewModel {
     private(set) var isCanceling = false
     private(set) var sendError: ConductorError?
     private(set) var isRenaming = false
+    /// Delivery state of each optimistic message still awaiting (or denied) a server
+    /// echo, keyed by the client-generated `messageId`. Consulted by the view to render
+    /// a "Queued" or "Not delivered — canceled" footer on the pending bubble.
+    private(set) var optimisticMessageStatesById: [String: OptimisticMessageState] = [:]
 
     private let client: ConductorClient
     private let pageSize = 50
@@ -84,11 +96,21 @@ final class SessionDetailViewModel {
                     limit: pageSize,
                     offset: serverMessagesById.count
                 )
+                var newMessageCount = 0
                 for message in page.data {
+                    if serverMessagesById[message.id] == nil {
+                        newMessageCount += 1
+                    }
                     serverMessagesById[message.id] = message
                 }
                 pagesFetched += 1
                 if !page.hasMore {
+                    break
+                }
+                // A non-empty page that contributed no new ids would re-request the same
+                // offset forever (offset is derived from `serverMessagesById.count`) —
+                // bail out instead of spinning until the page-count valve trips.
+                if !page.data.isEmpty && newMessageCount == 0 {
                     break
                 }
             }
@@ -113,7 +135,11 @@ final class SessionDetailViewModel {
             serverMessagesById.values.compactMap { $0.content["id"]?.stringValue }
         )
         pendingOptimistic.removeAll {
-            serverMessagesById[$0.id] != nil || confirmedClientIds.contains($0.id)
+            let isEchoed = serverMessagesById[$0.id] != nil || confirmedClientIds.contains($0.id)
+            if isEchoed {
+                optimisticMessageStatesById.removeValue(forKey: $0.id)
+            }
+            return isEchoed
         }
         let ordered = serverMessagesById.values.sorted {
             ($0.sessionIndex, $0.receivedAt) < ($1.sessionIndex, $1.receivedAt)
@@ -152,27 +178,53 @@ final class SessionDetailViewModel {
         reconcile()
 
         do {
-            _ = try await client.sendMessage(sessionId: session.id, message: trimmed, messageId: messageId)
+            let response = try await client.sendMessage(sessionId: session.id, message: trimmed, messageId: messageId)
+            optimisticMessageStatesById[messageId] = response.state == .queued ? .queued : .sent
             await loadStatus()
             await refreshMessages()
         } catch let error as ConductorError {
             sendError = error
             pendingOptimistic.removeAll { $0.id == messageId }
+            optimisticMessageStatesById.removeValue(forKey: messageId)
             reconcile()
         } catch {
             sendError = .transport(message: error.localizedDescription)
             pendingOptimistic.removeAll { $0.id == messageId }
+            optimisticMessageStatesById.removeValue(forKey: messageId)
             reconcile()
         }
     }
 
     func cancel() async {
+        guard !isCanceling else {
+            return
+        }
         isCanceling = true
         defer { isCanceling = false }
 
         do {
-            _ = try await client.cancelSession(id: session.id)
-            await loadStatus()
+            let response = try await client.cancelSession(id: session.id)
+            // Apply the response directly rather than issuing a follow-up status GET:
+            // if that second request failed, a cancel that actually succeeded would
+            // surface as a false failure. Preserve whatever error message is already
+            // loaded, since the cancel response doesn't carry one.
+            let updatedAt = ISO8601DateFormatter().string(from: Date())
+            statusLoadable = .loaded(SessionStatus(
+                workspaceId: response.workspaceId,
+                sessionId: response.sessionId,
+                status: response.status,
+                updatedAt: updatedAt,
+                errorMessage: statusLoadable.value?.errorMessage
+            ))
+
+            if response.canceledQueuedMessages > 0 {
+                // Not-yet-delivered queued messages were dropped by the cancel and will
+                // never be echoed by the server — mark their bubbles so they don't sit
+                // as "pending" forever.
+                for message in pendingOptimistic where optimisticMessageStatesById[message.id] == .queued {
+                    optimisticMessageStatesById[message.id] = .canceled
+                }
+            }
         } catch let error as ConductorError {
             sendError = error
         } catch {
@@ -181,6 +233,9 @@ final class SessionDetailViewModel {
     }
 
     func rename(to newName: String) async -> Bool {
+        guard !isRenaming else {
+            return false
+        }
         isRenaming = true
         defer { isRenaming = false }
 

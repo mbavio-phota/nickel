@@ -1,11 +1,16 @@
 import SwiftUI
 
-/// Root authenticated screen: every project as a full-width generated cover card — the
-/// content wears the color, the chrome stays quiet.
+/// Root authenticated screen: the "Active now" fleet strip (every session currently
+/// working or erroring, across all projects) above every project as a full-width
+/// generated cover card — the content wears the color, the chrome stays quiet.
 struct ProjectsListView: View {
     @Environment(AppSession.self) private var session
     @State private var viewModel: ProjectsListViewModel?
+    @State private var fleetViewModel: FleetViewModel?
     @State private var isSettingsPresented = false
+    @State private var isCreateFromURLPresented = false
+    @State private var pushedWorkspace: Workspace?
+    @State private var searchText = ""
 
     var body: some View {
         content
@@ -16,6 +21,18 @@ struct ProjectsListView: View {
                     ToolbarItem(placement: .topBarLeading) {
                         DemoBadge()
                     }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            isCreateFromURLPresented = true
+                        } label: {
+                            Label("Workspace from repo URL", systemImage: "link.badge.plus")
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("New")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -29,11 +46,32 @@ struct ProjectsListView: View {
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
             }
+            .sheet(isPresented: $isCreateFromURLPresented) {
+                CreateWorkspaceView(project: nil) { workspace in
+                    pushedWorkspace = workspace
+                }
+            }
+            .navigationDestination(item: $pushedWorkspace) { workspace in
+                WorkspaceDetailView(workspace: workspace)
+            }
             .task {
                 if viewModel == nil, let client = session.client {
                     viewModel = ProjectsListViewModel(client: client)
+                    fleetViewModel = FleetViewModel(client: client)
                 }
-                await viewModel?.loadInitial()
+                async let projects: Void? = viewModel?.loadInitial()
+                async let fleet: Void? = fleetViewModel?.refresh()
+                _ = await (projects, fleet)
+            }
+            .task(id: fleetViewModel == nil) {
+                guard let fleetViewModel else {
+                    return
+                }
+                // Between full scans, keep the strip honest: re-check just the statuses
+                // of the sessions already on it, so finished work drops off promptly.
+                await poll(every: { .seconds(12) }, while: { true }) {
+                    await fleetViewModel.pollStatuses()
+                }
             }
     }
 
@@ -76,10 +114,38 @@ struct ProjectsListView: View {
         }
     }
 
+    private var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func filteredProjects(_ viewModel: ProjectsListViewModel) -> [Project] {
+        guard isSearching else {
+            return viewModel.projects
+        }
+        let query = searchText.trimmingCharacters(in: .whitespaces)
+        return viewModel.projects.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+                || $0.gitRemote.localizedCaseInsensitiveContains(query)
+        }
+    }
+
     private func list(viewModel: ProjectsListViewModel) -> some View {
         ScrollView {
             LazyVStack(spacing: 14) {
-                ForEach(viewModel.projects) { project in
+                // The fleet strip steps aside while searching — search is about finding
+                // a project, not monitoring.
+                if !isSearching, let fleetViewModel, !fleetViewModel.entries.isEmpty {
+                    FleetStrip(entries: fleetViewModel.entries)
+                        .padding(.bottom, 4)
+                }
+
+                let filtered = filteredProjects(viewModel)
+                if isSearching && filtered.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
+                        .padding(.top, 40)
+                }
+
+                ForEach(filtered) { project in
                     NavigationLink(value: project) {
                         ProjectCoverCard(project: project)
                     }
@@ -93,15 +159,32 @@ struct ProjectsListView: View {
                     ProgressView()
                         .padding(.vertical, 12)
                 }
+
+                if viewModel.loadMoreFailed {
+                    Button {
+                        Task { await viewModel.retryLoadMore() }
+                    } label: {
+                        Label("Couldn't load more — retry", systemImage: "arrow.clockwise")
+                            .font(.footnote.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.vertical, 8)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
+        .searchable(text: $searchText, prompt: "Search projects")
         .refreshable {
-            await viewModel.refresh()
+            async let projects: Void = viewModel.refresh()
+            async let fleet: Void? = fleetViewModel?.refresh()
+            _ = await (projects, fleet)
         }
         .navigationDestination(for: Project.self) { project in
             ProjectDetailView(project: project)
+        }
+        .navigationDestination(for: Session.self) { session in
+            SessionDetailView(session: session)
         }
     }
 }

@@ -66,7 +66,14 @@ enum ConductorError: Error, Equatable {
     static func fromResponse(statusCode: Int, data: Data) -> ConductorError {
         let decoder = JSONDecoder()
         guard let structured = try? decoder.decode(StructuredError.self, from: data) else {
-            let message = String(data: data, encoding: .utf8) ?? "Request failed (\(statusCode))."
+            let fallback = "Request failed (\(statusCode))."
+            let bodyText = String(data: data, encoding: .utf8)
+            let message: String
+            if let bodyText, !looksLikeHTML(bodyText) {
+                message = bodyText
+            } else {
+                message = fallback
+            }
             return statusCode == 401 ? .unauthorized(userMessage: message) : .server(
                 statusCode: statusCode,
                 structured: StructuredError(
@@ -85,5 +92,12 @@ enum ConductorError: Error, Equatable {
             return .unauthorized(userMessage: structured.userMessage)
         }
         return .server(statusCode: statusCode, structured: structured)
+    }
+
+    /// Whether a non-JSON error body looks like an HTML document rather than plain text —
+    /// used to avoid surfacing raw markup (e.g. a proxy's error page) as a user message.
+    private static func looksLikeHTML(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return trimmed.hasPrefix("<!doctype") || trimmed.contains("<html")
     }
 }

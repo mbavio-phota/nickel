@@ -12,14 +12,18 @@ your projects, cloud workspaces, and coding-agent sessions from your phone via t
 
 - **Sign in with your Conductor API key** (validated live, stored in the iOS Keychain) —
   or tap "Explore with demo data" for a fully mocked, no-network demo mode.
-- **Projects** — browse all projects with pagination and pull-to-refresh.
+- **Active now** — a fleet strip at the top of the home screen surfaces every session
+  currently working or erroring across *all* your projects, one tap from its chat — the
+  desktop app's at-a-glance view, on the phone.
+- **Projects** — browse all projects with search, pagination, and pull-to-refresh.
 - **Workspaces** — per-project list with live status dots (initializing / ready /
-  sleeping / archived / updating), create new workspaces (branch, agent, model), rename,
-  archive, and share the desktop deep link ("Open on Mac").
+  sleeping / archived / updating), create new workspaces (branch, agent, model) — on a
+  project or straight from any repository URL — rename, archive, and share the desktop
+  deep link ("Open on Mac").
 - **Agent sessions** — chat with a running agent from your phone: full transcript
   (unrecognized event payloads render as tappable raw-JSON chips), send follow-up
-  messages, watch the working indicator, and cancel runaway turns. Status and transcript
-  poll at 3s while working, 10s while idle.
+  messages (with queued-delivery state), watch the working indicator, and cancel runaway
+  turns. Status and transcript poll at 3s while working, 10s while idle.
 
 ## Building
 

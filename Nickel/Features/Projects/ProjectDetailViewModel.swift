@@ -11,11 +11,17 @@ final class ProjectDetailViewModel {
     private(set) var loadable: Loadable<[Workspace]> = .idle
     private(set) var hasMore = false
     private(set) var isLoadingMore = false
+    /// Set when a load-more request fails: pagination pauses behind an explicit Retry
+    /// affordance instead of silently truncating the list.
+    private(set) var loadMoreFailed = false
     private(set) var statusesById: [String: WorkspaceStatus] = [:]
 
     let project: Project
     private let client: ConductorClient
     private let pageSize = 20
+    /// Bumped on every refresh; in-flight requests from an older generation discard
+    /// their results instead of clobbering (or appending to) the fresher list.
+    private var generation = 0
 
     init(project: Project, client: ConductorClient) {
         self.project = project
@@ -52,17 +58,33 @@ final class ProjectDetailViewModel {
     }
 
     func refresh() async {
-        loadable = .loading
+        generation += 1
+        let requestGeneration = generation
+        // Keep already-loaded rows on screen during pull-to-refresh — only show the
+        // full-screen spinner when there is nothing to show yet.
+        if loadable.value == nil {
+            loadable = .loading
+        }
         do {
             let page = try await client.listWorkspaces(projectId: project.id, limit: pageSize, offset: nil)
+            guard requestGeneration == generation else {
+                return
+            }
             loadable = .loaded(page.data)
             hasMore = page.hasMore
-            // Drop cached row statuses so the refreshed list re-fetches live ones.
-            statusesById = [:]
+            loadMoreFailed = false
+            // Let fresh statuses overwrite stale entries instead of wiping the cache and
+            // flashing placeholders while they're refetched.
             await loadStatuses(for: page.data)
         } catch let error as ConductorError {
+            guard requestGeneration == generation else {
+                return
+            }
             loadable = .failed(error)
         } catch {
+            guard requestGeneration == generation else {
+                return
+            }
             loadable = .failed(.transport(message: error.localizedDescription))
         }
     }
@@ -70,20 +92,38 @@ final class ProjectDetailViewModel {
     /// Loads the next page. Triggered by a sentinel at the end of the list (grouping
     /// means the last *visible* row is no longer necessarily the last loaded workspace).
     func loadMoreIfNeeded() async {
+        guard hasMore, !isLoadingMore, !loadMoreFailed else {
+            return
+        }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
         guard hasMore, !isLoadingMore else {
             return
         }
+        loadMoreFailed = false
+        await loadMore()
+    }
 
+    private func loadMore() async {
+        let requestGeneration = generation
         isLoadingMore = true
         defer { isLoadingMore = false }
 
         do {
             let page = try await client.listWorkspaces(projectId: project.id, limit: pageSize, offset: workspaces.count)
+            guard requestGeneration == generation else {
+                return
+            }
             loadable = .loaded(workspaces + page.data)
             hasMore = page.hasMore
             await loadStatuses(for: page.data)
         } catch {
-            hasMore = false
+            guard requestGeneration == generation else {
+                return
+            }
+            loadMoreFailed = true
         }
     }
 

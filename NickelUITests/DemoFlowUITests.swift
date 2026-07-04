@@ -25,7 +25,25 @@ final class DemoFlowUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Projects"].waitForExistence(timeout: 10))
         let projectRow = app.staticTexts["nebuchadnezzar"]
         XCTAssertTrue(projectRow.waitForExistence(timeout: 10))
+
+        // "Active now" fleet strip: the demo world seeds one working and one error
+        // session across different projects; both must surface, and a card drops
+        // straight into that session's chat.
+        XCTAssertTrue(app.staticTexts["Active now"].waitForExistence(timeout: 10))
+        let workingCard = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'Working: Operator uplink'")
+        ).firstMatch
+        XCTAssertTrue(workingCard.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'Error: Trace the black cat glitch'")
+        ).firstMatch.exists)
         attachScreenshot(app, name: "02-projects")
+
+        workingCard.tap()
+        XCTAssertTrue(app.navigationBars["Operator uplink"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Working"].waitForExistence(timeout: 10))
+        attachScreenshot(app, name: "02b-fleet-session")
+        app.navigationBars.buttons.firstMatch.tap() // back to projects
 
         // Project detail: cover header + workspace cards with status chips. The title
         // lives in the cover header now, not the navigation bar.
