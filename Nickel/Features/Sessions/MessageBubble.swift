@@ -38,6 +38,15 @@ private struct ChatBubble: View {
     let isUser: Bool
     let timestamp: Date?
 
+    /// Agent replies are markdown; render inline styling (bold, italics, code spans)
+    /// while preserving line structure. Falls back to the plain text on parse failure.
+    private var markdownText: AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+
     var body: some View {
         HStack {
             if isUser {
@@ -45,7 +54,7 @@ private struct ChatBubble: View {
             }
 
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
-                Text(text)
+                Text(markdownText)
                     .font(.body)
                     .foregroundStyle(isUser ? .white : .primary)
                     .padding(.horizontal, 14)
