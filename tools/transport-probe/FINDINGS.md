@@ -47,7 +47,7 @@ content = { eventId, rawPayload, turnId, type: "agent", userMessageId }
 | `system` | `init` | session boot (tools, skills, model, cwd…) | chip |
 | `system` | `task_started/progress/updated/notification` | Task (sub-agent) lifecycle; `description`/`summary` fields | chip + detail |
 | `system` | `thinking_tokens` | streaming thinking-token estimates | chip |
-| `result` | `success` | turn summary: `result` (duplicate of final text), `total_cost_usd`, `duration_ms`, `usage` | chip + cost/duration |
+| `result` | `success` | turn summary: `result` (duplicate of final text), `total_cost_usd`, `duration_ms`, `usage`. **A failed turn (e.g. provider 429) still reports subtype `success` — check `is_error: true` (+ `stop_reason`)** | chip + cost/duration; `is_error` → label "result · error" |
 
 **Sub-agent multiplexing:** Task turns are interleaved into the same transcript as
 ordinary `user`/`assistant` events distinguished ONLY by a non-null

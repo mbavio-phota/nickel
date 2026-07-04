@@ -267,6 +267,24 @@ final class JSONValueTests: XCTestCase {
         XCTAssertEqual(result.eventDetail, "$0.085 · 1.1s")
     }
 
+    /// Captured live: a failed turn (e.g. provider 429) still reports subtype "success"
+    /// with is_error true — the chip must not claim success.
+    func testFailedResultEventLabelsAsError() {
+        let message = TranscriptMessage(
+            id: "m", sessionId: "s", sessionIndex: 0, type: "agent",
+            content: .object([
+                "rawPayload": .object([
+                    "type": .string("result"),
+                    "subtype": .string("success"),
+                    "is_error": .bool(true),
+                    "stop_reason": .string("stop_sequence"),
+                ]),
+            ]),
+            receivedAt: "2026-07-04 14:28:19.429+00"
+        )
+        XCTAssertEqual(message.eventKind, "result · error")
+    }
+
     /// Sub-agent (Task) traffic captured live 2026-07-04: the task prompt arrives as a
     /// user-role text event with parent_tool_use_id set. It must chip, never bubble.
     func testSubagentTaskPromptIsChipNotBubble() {

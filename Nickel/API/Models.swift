@@ -171,6 +171,10 @@ struct TranscriptMessage: Codable, Equatable, Identifiable, Hashable {
         guard let rawType = raw["type"]?.stringValue else {
             return type
         }
+        // A failed turn still reports subtype "success" — is_error is the real signal.
+        if rawType == "result", raw["is_error"]?.boolValue == true {
+            return "result · error"
+        }
         if let subtype = raw["subtype"]?.stringValue {
             return "\(rawType) · \(subtype)"
         }

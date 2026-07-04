@@ -89,6 +89,7 @@ function eventKind(message) {
   const prefix = isSubagentEvent(message) ? "task · " : "";
   const blockType = raw.message?.content?.[0]?.type;
   if (blockType && blockType !== "text") return prefix + blockType.replace(/_/g, " ");
+  if (raw.type === "result" && raw.is_error === true) return "result · error";
   if (raw.type) return raw.subtype ? `${raw.type} · ${raw.subtype}` : prefix + raw.type;
   return message.type;
 }
