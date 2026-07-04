@@ -107,23 +107,48 @@ extension JSONValue {
         return array[index]
     }
 
-    /// Best-effort human-readable text dug out of common shapes agent transcript events
-    /// use ("text", "message", "content" as a string, or the value itself if it's already
-    /// a plain string). Returns `nil` if nothing recognizable is found — callers should
-    /// fall back to a raw-JSON disclosure view rather than assuming a schema.
+    /// Keys that commonly wrap human-readable text in agent transcript events, in
+    /// priority order. Recursed into (not just read as strings) because providers nest
+    /// them arbitrarily, e.g. `{message: {content: [{type: "text", text: "..."}]}}`.
+    private static let textCarrierKeys = [
+        "text", "message", "content", "parts", "blocks", "body", "output_text", "value",
+    ]
+
+    /// Best-effort human-readable text dug out of the shapes agent transcript events use.
+    /// Plain strings pass through; objects are searched recursively via well-known
+    /// carrier keys; arrays concatenate whatever text their elements yield. Returns `nil`
+    /// if nothing recognizable is found — callers should fall back to a raw-JSON
+    /// disclosure view rather than assuming a schema.
     var displayText: String? {
+        let text = extractText(depth: 0)
+        return text?.isEmpty == false ? text : nil
+    }
+
+    private func extractText(depth: Int) -> String? {
+        guard depth < 6 else {
+            return nil
+        }
         switch self {
         case .string(let value):
             return value
         case .object:
-            for key in ["text", "message", "content"] {
-                if let text = self[key]?.stringValue {
+            for key in Self.textCarrierKeys {
+                if let text = self[key]?.extractText(depth: depth + 1) {
                     return text
                 }
             }
             return nil
+        case .array(let elements):
+            let pieces = elements.compactMap { $0.extractText(depth: depth + 1) }
+            return pieces.isEmpty ? nil : pieces.joined(separator: "\n")
         default:
             return nil
         }
+    }
+
+    /// The `role` field commonly embedded in transcript event payloads ("user",
+    /// "assistant", ...), searched one level of `message` nesting deep.
+    var roleValue: String? {
+        self["role"]?.stringValue ?? self["message"]?["role"]?.stringValue
     }
 }

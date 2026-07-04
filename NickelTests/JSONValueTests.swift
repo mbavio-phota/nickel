@@ -84,16 +84,66 @@ final class JSONValueTests: XCTestCase {
         XCTAssertNil(value.displayText)
     }
 
-    func testDisplayTextNilForNonStringContentField() {
-        // "content" present but not a string (e.g. nested object) — should not be dug out.
+    func testDisplayTextNilWhenNoCarrierKeyLeadsToText() {
+        // "content" present but nothing text-like beneath any known carrier key.
         let value = JSONValue.object(["content": .object(["nested": .string("x")])])
         XCTAssertNil(value.displayText)
     }
 
-    func testDisplayTextNilForNumberOrArrayOrNull() {
+    func testDisplayTextNilForNumberOrNull() {
         XCTAssertNil(JSONValue.number(1).displayText)
-        XCTAssertNil(JSONValue.array([.string("x")]).displayText)
         XCTAssertNil(JSONValue.null.displayText)
         XCTAssertNil(JSONValue.bool(true).displayText)
+        XCTAssertNil(JSONValue.array([.number(1), .null]).displayText)
+    }
+
+    func testDisplayTextRecursesNestedMessageContentParts() {
+        // Anthropic/OpenAI-style nesting: message.content is an array of typed blocks.
+        let value = JSONValue.object([
+            "message": .object([
+                "role": .string("assistant"),
+                "content": .array([
+                    .object(["type": .string("text"), "text": .string("First block.")]),
+                    .object(["type": .string("tool_use"), "name": .string("read_file")]),
+                    .object(["type": .string("text"), "text": .string("Second block.")]),
+                ]),
+            ]),
+        ])
+        XCTAssertEqual(value.displayText, "First block.\nSecond block.")
+    }
+
+    func testDisplayTextConcatenatesArrayOfStrings() {
+        XCTAssertEqual(JSONValue.array([.string("a"), .string("b")]).displayText, "a\nb")
+    }
+
+    func testDisplayTextIgnoresEmptyResult() {
+        XCTAssertNil(JSONValue.object(["text": .string("")]).displayText)
+    }
+
+    func testRoleValueDirectAndNestedInMessage() {
+        XCTAssertEqual(JSONValue.object(["role": .string("user")]).roleValue, "user")
+        XCTAssertEqual(
+            JSONValue.object(["message": .object(["role": .string("user")])]).roleValue,
+            "user"
+        )
+        XCTAssertNil(JSONValue.object(["text": .string("x")]).roleValue)
+    }
+
+    func testTranscriptMessageIsFromUser() {
+        func message(type: String, content: JSONValue) -> TranscriptMessage {
+            TranscriptMessage(
+                id: "m", sessionId: "s", sessionIndex: 0, type: type, content: content,
+                receivedAt: "2026-07-04T10:00:00Z"
+            )
+        }
+        XCTAssertTrue(message(type: "user", content: .null).isFromUser)
+        XCTAssertTrue(message(type: "user_message", content: .null).isFromUser)
+        XCTAssertTrue(
+            message(type: "message", content: .object(["role": .string("user")])).isFromUser
+        )
+        XCTAssertFalse(message(type: "agent", content: .null).isFromUser)
+        XCTAssertFalse(
+            message(type: "message", content: .object(["role": .string("assistant")])).isFromUser
+        )
     }
 }

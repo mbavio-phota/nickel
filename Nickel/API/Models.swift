@@ -121,6 +121,16 @@ struct TranscriptMessage: Codable, Equatable, Identifiable, Hashable {
         Formatters.date(from: receivedAt)
     }
 
+    /// Whether this message was authored by the human. The API's `type` vocabulary is
+    /// unschemad, so match any user-ish type ("user", "user_message", ...) and fall back
+    /// to a `role` field embedded in the content payload.
+    var isFromUser: Bool {
+        if type.lowercased().contains("user") {
+            return true
+        }
+        return content.roleValue?.lowercased() == "user"
+    }
+
     static func == (lhs: TranscriptMessage, rhs: TranscriptMessage) -> Bool {
         lhs.id == rhs.id && lhs.sessionId == rhs.sessionId && lhs.sessionIndex == rhs.sessionIndex
             && lhs.type == rhs.type && lhs.content == rhs.content && lhs.receivedAt == rhs.receivedAt

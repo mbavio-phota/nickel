@@ -8,18 +8,27 @@ struct MessageRow: View {
     @State private var isRawJSONPresented = false
 
     var body: some View {
-        if let text = message.content.displayText, !text.isEmpty {
-            ChatBubble(text: text, isUser: message.type == "user", timestamp: message.receivedDate)
-        } else {
+        Group {
+            if let text = message.content.displayText, !text.isEmpty {
+                ChatBubble(text: text, isUser: message.isFromUser, timestamp: message.receivedDate)
+            } else {
+                Button {
+                    isRawJSONPresented = true
+                } label: {
+                    EventChip(type: message.type)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .contextMenu {
             Button {
                 isRawJSONPresented = true
             } label: {
-                EventChip(type: message.type)
+                Label("View raw JSON", systemImage: "curlybraces")
             }
-            .buttonStyle(.plain)
-            .sheet(isPresented: $isRawJSONPresented) {
-                RawEventView(message: message)
-            }
+        }
+        .sheet(isPresented: $isRawJSONPresented) {
+            RawEventView(message: message)
         }
     }
 }
