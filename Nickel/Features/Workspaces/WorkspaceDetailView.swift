@@ -237,15 +237,15 @@ struct WorkspaceDetailView: View {
 
     @ViewBuilder
     private func sessionCards(viewModel: WorkspaceDetailViewModel) -> some View {
-        ForEach(viewModel.sessions) { sessionItem in
+        ForEach(viewModel.orderedSessions) { sessionItem in
             Button {
                 pushedSession = sessionItem
             } label: {
-                SessionCard(session: sessionItem)
+                SessionCard(session: sessionItem, status: viewModel.sessionStatusesById[sessionItem.id])
             }
             .buttonStyle(PressableStyle())
             .task {
-                await viewModel.loadMoreSessionsIfNeeded(currentItem: sessionItem)
+                await viewModel.loadSessionStatusIfNeeded(for: sessionItem.id)
             }
         }
 
@@ -254,11 +254,22 @@ struct WorkspaceDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
         }
+
+        // Pagination sentinel: with status ordering, the last visible card is not
+        // necessarily the last loaded session.
+        if viewModel.hasMoreSessions {
+            Color.clear
+                .frame(height: 1)
+                .task {
+                    await viewModel.loadMoreSessionsIfNeeded()
+                }
+        }
     }
 }
 
 private struct SessionCard: View {
     let session: Session
+    let status: SessionStatus?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -275,6 +286,13 @@ private struct SessionCard: View {
                 }
             }
             Spacer(minLength: 8)
+            if let status {
+                StatusChip(
+                    color: Theme.color(for: status.status),
+                    label: status.status.displayName,
+                    isPulsing: status.status == .working
+                )
+            }
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.tertiary)

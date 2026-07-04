@@ -456,7 +456,9 @@ extension MockConductorClient {
 
         let sessionsByWorkspace: [String: [Session]] = [
             "ws_neb_1": [sessRetina1],
-            "ws_neb_2": [sessRetina2a, sessRetina2b],
+            // Deliberately idle-first: the UI sorts working sessions to the top, and
+            // tests rely on this seed order to prove the sort actually reorders.
+            "ws_neb_2": [sessRetina2b, sessRetina2a],
             "ws_neb_3": [sessRetina3],
             "ws_construct_1": [sessMobile1],
             "ws_construct_2": [sessMobile2],

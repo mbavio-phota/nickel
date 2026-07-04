@@ -9,6 +9,7 @@ final class WorkspaceDetailViewModel {
     private(set) var workspace: Workspace
     private(set) var statusLoadable: Loadable<WorkspaceStatus> = .idle
     private(set) var sessionsLoadable: Loadable<[Session]> = .idle
+    private(set) var sessionStatusesById: [String: SessionStatus] = [:]
     private(set) var hasMoreSessions = false
     private(set) var isLoadingMoreSessions = false
     private(set) var isRenaming = false
@@ -25,6 +26,35 @@ final class WorkspaceDetailViewModel {
 
     var sessions: [Session] {
         sessionsLoadable.value ?? []
+    }
+
+    /// Sessions for display: working first, then error, then idle/unknown — most
+    /// recently active first within each group, original order as the tiebreaker.
+    var orderedSessions: [Session] {
+        sessions.enumerated().sorted { lhs, rhs in
+            let lhsRank = statusRank(lhs.element.id)
+            let rhsRank = statusRank(rhs.element.id)
+            if lhsRank != rhsRank {
+                return lhsRank < rhsRank
+            }
+            let lhsUpdated = sessionStatusesById[lhs.element.id]?.updatedDate ?? .distantPast
+            let rhsUpdated = sessionStatusesById[rhs.element.id]?.updatedDate ?? .distantPast
+            if lhsUpdated != rhsUpdated {
+                return lhsUpdated > rhsUpdated
+            }
+            return lhs.offset < rhs.offset
+        }.map(\.element)
+    }
+
+    private func statusRank(_ sessionId: String) -> Int {
+        switch sessionStatusesById[sessionId]?.status {
+        case .working:
+            return 0
+        case .error:
+            return 1
+        case .idle, nil:
+            return 2
+        }
     }
 
     var isArchived: Bool {
@@ -64,6 +94,8 @@ final class WorkspaceDetailViewModel {
             let page = try await client.listSessions(workspaceId: workspace.id, limit: pageSize, offset: nil)
             sessionsLoadable = .loaded(page.data)
             hasMoreSessions = page.hasMore
+            sessionStatusesById = [:]
+            await loadSessionStatuses(for: page.data)
         } catch let error as ConductorError {
             sessionsLoadable = .failed(error)
         } catch {
@@ -71,8 +103,10 @@ final class WorkspaceDetailViewModel {
         }
     }
 
-    func loadMoreSessionsIfNeeded(currentItem sessionItem: Session) async {
-        guard hasMoreSessions, !isLoadingMoreSessions, sessionItem.id == sessions.last?.id else {
+    /// Loads the next page. Triggered by a sentinel at the end of the list (status
+    /// ordering means the last visible card is not necessarily the last loaded session).
+    func loadMoreSessionsIfNeeded() async {
+        guard hasMoreSessions, !isLoadingMoreSessions else {
             return
         }
         isLoadingMoreSessions = true
@@ -82,8 +116,29 @@ final class WorkspaceDetailViewModel {
             let page = try await client.listSessions(workspaceId: workspace.id, limit: pageSize, offset: sessions.count)
             sessionsLoadable = .loaded(sessions + page.data)
             hasMoreSessions = page.hasMore
+            await loadSessionStatuses(for: page.data)
         } catch {
             hasMoreSessions = false
+        }
+    }
+
+    /// Fetches a single session's status, caching the result. Rows call this from
+    /// `.task` as a safety net; the eager path is `loadSessionStatuses(for:)`.
+    func loadSessionStatusIfNeeded(for sessionId: String) async {
+        guard sessionStatusesById[sessionId] == nil else {
+            return
+        }
+        if let status = try? await client.getSessionStatus(id: sessionId) {
+            sessionStatusesById[sessionId] = status
+        }
+    }
+
+    /// Concurrently fetches statuses for every session that doesn't have one yet.
+    private func loadSessionStatuses(for sessions: [Session]) async {
+        await withTaskGroup(of: Void.self) { group in
+            for session in sessions where sessionStatusesById[session.id] == nil {
+                group.addTask { await self.loadSessionStatusIfNeeded(for: session.id) }
+            }
         }
     }
 
@@ -136,6 +191,9 @@ final class WorkspaceDetailViewModel {
             sessionsLoadable = .loaded(sessions + [session])
         } else {
             sessionsLoadable = .loaded([session])
+        }
+        Task {
+            await loadSessionStatusIfNeeded(for: session.id)
         }
     }
 }
