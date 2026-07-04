@@ -180,6 +180,15 @@ final class SessionDetailViewModel {
         do {
             let response = try await client.sendMessage(sessionId: session.id, message: trimmed, messageId: messageId)
             optimisticMessageStatesById[messageId] = response.state == .queued ? .queued : .sent
+            // A new message going out is the moment the user has moved on — clear any
+            // earlier cancel-dropped bubbles so they don't pile up for the whole visit.
+            let canceledIds = Set(
+                optimisticMessageStatesById.filter { $0.value == .canceled && $0.key != messageId }.keys
+            )
+            if !canceledIds.isEmpty {
+                pendingOptimistic.removeAll { canceledIds.contains($0.id) }
+                canceledIds.forEach { optimisticMessageStatesById.removeValue(forKey: $0) }
+            }
             await loadStatus()
             await refreshMessages()
         } catch let error as ConductorError {

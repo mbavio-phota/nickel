@@ -146,6 +146,12 @@ final class SessionDetailViewModelTests: XCTestCase {
             viewModel.messages.contains { $0.id == queuedId },
             "the canceled bubble must stay in the transcript"
         )
+
+        // Sending again is the moment the user moves on: the cancel-dropped bubble (and
+        // its tracked state) get cleared instead of piling up for the whole visit.
+        await viewModel.send("second, after cancel")
+        XCTAssertFalse(viewModel.messages.contains { $0.id == queuedId })
+        XCTAssertNil(viewModel.optimisticMessageStatesById[queuedId])
     }
 }
 

@@ -28,6 +28,9 @@ final class FleetViewModel {
 
     private let client: ConductorClient
     private var isScanning = false
+    /// Bumped on every full rescan; a status poll that was already mid-flight when the
+    /// rescan started discards its (stale-snapshot) result instead of clobbering it.
+    private var generation = 0
 
     /// Fan-out caps: one page of projects, the freshest workspaces overall, one page of
     /// sessions each. Keeps a worst-case live scan to a few dozen requests.
@@ -46,6 +49,7 @@ final class FleetViewModel {
             return
         }
         isScanning = true
+        generation += 1
         defer {
             isScanning = false
             hasLoaded = true
@@ -66,26 +70,44 @@ final class FleetViewModel {
     }
 
     /// Cheap between-scan poll: re-fetch only the statuses of sessions already in the
-    /// strip, dropping ones that went idle. New activity is picked up by the next full
-    /// `refresh()` (pull-to-refresh or reappear).
+    /// strip (concurrently), dropping ones that went idle. New activity is picked up by
+    /// the next full `refresh()` (pull-to-refresh or reappear).
     func pollStatuses() async {
         guard !isScanning, !entries.isEmpty else {
             return
         }
-        var refreshed: [FleetEntry] = []
-        for entry in entries {
-            guard let status = try? await client.getSessionStatus(id: entry.session.id) else {
-                refreshed.append(entry)
-                continue
+        let requestGeneration = generation
+        let refreshed = await withTaskGroup(of: FleetEntry?.self) { group in
+            for entry in entries {
+                group.addTask { [client] in
+                    guard let status = try? await client.getSessionStatus(id: entry.session.id) else {
+                        // A failed status check keeps the entry — dropping it would make
+                        // a transient blip look like the agent finished.
+                        return entry
+                    }
+                    guard status.status != .idle else {
+                        return nil
+                    }
+                    return FleetEntry(
+                        session: entry.session,
+                        status: status,
+                        workspace: entry.workspace,
+                        project: entry.project
+                    )
+                }
             }
-            if status.status != .idle {
-                refreshed.append(FleetEntry(
-                    session: entry.session,
-                    status: status,
-                    workspace: entry.workspace,
-                    project: entry.project
-                ))
+            var kept: [FleetEntry] = []
+            for await entry in group {
+                if let entry {
+                    kept.append(entry)
+                }
             }
+            return kept
+        }
+        // A full rescan started (and may have finished) while this poll was in flight —
+        // its result is fresher than this stale-snapshot walk.
+        guard requestGeneration == generation else {
+            return
         }
         entries = Self.ordered(refreshed)
     }

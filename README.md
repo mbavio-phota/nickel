@@ -36,7 +36,7 @@ xcodebuild -project Nickel.xcodeproj -scheme Nickel \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
-Tests (69 unit tests + an end-to-end demo-mode UI test that walks every screen):
+Tests (111 unit tests + an end-to-end demo-mode UI test that walks every screen):
 
 ```bash
 xcodebuild -project Nickel.xcodeproj -scheme Nickel \
