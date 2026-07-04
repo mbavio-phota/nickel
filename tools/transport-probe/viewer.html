@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nickel transport probe</title>
+<style>
+  :root { color-scheme: light dark; --accent: #FF5C0A; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 -apple-system, system-ui, sans-serif; display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+  header { padding: 10px 16px; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); display: flex; gap: 12px; align-items: center; }
+  header h1 { font-size: 15px; margin: 0; }
+  header select { font: inherit; max-width: 46ch; }
+  main { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr); overflow: hidden; }
+  #chat, #raw { overflow-y: auto; padding: 16px; }
+  #raw { border-left: 1px solid color-mix(in srgb, currentColor 15%, transparent); white-space: pre-wrap; font: 12px/1.5 ui-monospace, monospace; }
+  .row { display: flex; margin: 6px 0; }
+  .row.user { justify-content: flex-end; }
+  .bubble { max-width: 78%; padding: 8px 12px; border-radius: 16px; background: color-mix(in srgb, currentColor 8%, transparent); cursor: pointer; white-space: pre-wrap; }
+  .user .bubble { background: var(--accent); color: #fff; }
+  .chip { margin: 6px auto; padding: 3px 10px; border-radius: 999px; font: 12px ui-monospace, monospace; opacity: .65; background: color-mix(in srgb, currentColor 8%, transparent); cursor: pointer; }
+  .selected { outline: 2px solid var(--accent); }
+  .meta { font-size: 11px; opacity: .5; margin: 0 6px; align-self: flex-end; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Nickel transport probe</h1>
+  <select id="sessions"></select>
+  <span id="stats" class="meta"></span>
+</header>
+<main>
+  <div id="chat"></div>
+  <div id="raw">Click a message to inspect its raw payload.</div>
+</main>
+<script>
+// ==== Extraction logic — keep byte-for-byte in sync with Nickel/API/JSONValue.swift ====
+const CARRIER_KEYS = ["text", "message", "content", "rawPayload", "parts", "blocks", "body", "output_text", "value"];
+
+function extractText(value, depth = 0) {
+  if (depth >= 6 || value == null) return null;
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    const typed = value.some(el => el && typeof el === "object" && typeof el.type === "string");
+    const candidates = typed ? value.filter(el => el && el.type === "text") : value;
+    const pieces = candidates.map(el => extractText(el, depth + 1)).filter(Boolean);
+    return pieces.length ? pieces.join("\n") : null;
+  }
+  if (typeof value === "object") {
+    for (const key of CARRIER_KEYS) {
+      if (key in value) {
+        const text = extractText(value[key], depth + 1);
+        if (text) return text;
+      }
+    }
+  }
+  return null;
+}
+
+function displayText(content) {
+  const text = extractText(content);
+  return text && text.length ? text : null;
+}
+
+function roleValue(content) {
+  if (!content || typeof content !== "object") return null;
+  return content.role ?? content.message?.role ?? null;
+}
+
+function isFromUser(message) {
+  if (message.type?.toLowerCase().includes("user")) return true;
+  return roleValue(message.content)?.toLowerCase() === "user";
+}
+
+function eventKind(message) {
+  const raw = message.content?.rawPayload;
+  if (raw?.type) return raw.subtype ? `${raw.type} · ${raw.subtype}` : raw.type;
+  return message.type;
+}
+// ==== end shared logic ====
+
+const chat = document.getElementById("chat");
+const rawPane = document.getElementById("raw");
+const picker = document.getElementById("sessions");
+const stats = document.getElementById("stats");
+
+async function loadIndex() {
+  const index = await (await fetch("dumps/index.json")).json();
+  for (const entry of index) {
+    const option = document.createElement("option");
+    option.value = entry.sessionId;
+    option.textContent = `${entry.project} / ${entry.workspace} / ${entry.sessionName ?? entry.sessionId} (${entry.messageCount})`;
+    picker.append(option);
+  }
+  picker.onchange = () => loadSession(picker.value);
+  if (index.length) loadSession(index[0].sessionId);
+}
+
+async function loadSession(sessionId) {
+  const messages = await (await fetch(`dumps/messages-${sessionId}.json`)).json();
+  messages.sort((a, b) => a.sessionIndex - b.sessionIndex);
+  chat.innerHTML = "";
+  let bubbles = 0, chips = 0;
+  for (const message of messages) {
+    const text = displayText(message.content);
+    let el;
+    if (text) {
+      bubbles++;
+      el = document.createElement("div");
+      el.className = "row" + (isFromUser(message) ? " user" : "");
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+      bubble.onclick = () => inspect(message, bubble);
+      el.append(bubble);
+    } else {
+      chips++;
+      el = document.createElement("div");
+      el.style.display = "flex";
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.textContent = `</> ${eventKind(message)}`;
+      chip.onclick = () => inspect(message, chip);
+      el.append(chip);
+    }
+    chat.append(el);
+  }
+  stats.textContent = `${messages.length} messages · ${bubbles} bubbles · ${chips} chips`;
+  rawPane.textContent = "Click a message to inspect its raw payload.";
+}
+
+function inspect(message, el) {
+  document.querySelectorAll(".selected").forEach(n => n.classList.remove("selected"));
+  el.classList.add("selected");
+  rawPane.textContent = JSON.stringify(message, null, 2);
+}
+
+loadIndex().catch(err => { chat.textContent = `Failed to load dumps/index.json — run probe.py first. (${err})`; });
+</script>
+</body>
+</html>
