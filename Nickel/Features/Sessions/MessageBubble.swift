@@ -9,7 +9,7 @@ struct MessageRow: View {
 
     var body: some View {
         Group {
-            if let text = message.content.displayText, !text.isEmpty {
+            if message.rendersAsBubble, let text = message.content.displayText, !text.isEmpty {
                 ChatBubble(text: text, isUser: message.isFromUser, timestamp: message.receivedDate)
             } else {
                 Button {
@@ -84,6 +84,7 @@ private struct EventChip: View {
                 Text(detail)
                     .font(Theme.monospace(11))
                     .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
             Image(systemName: "chevron.right")
                 .font(.caption2)

@@ -71,22 +71,39 @@ function isFromUser(message) {
   return roleValue(message.content)?.toLowerCase() === "user";
 }
 
+function isSubagentEvent(message) {
+  return typeof message.content?.rawPayload?.parent_tool_use_id === "string";
+}
+
+function rendersAsBubble(message) {
+  if (isSubagentEvent(message)) return false;
+  if (isFromUser(message)) return true;
+  const raw = message.content?.rawPayload;
+  if (!raw) return displayText(message.content) != null;
+  return raw.type === "assistant" && displayText(message.content) != null;
+}
+
 function eventKind(message) {
   const raw = message.content?.rawPayload;
   if (!raw) return message.type;
+  const prefix = isSubagentEvent(message) ? "task · " : "";
   const blockType = raw.message?.content?.[0]?.type;
-  if (blockType && blockType !== "text") return blockType.replace(/_/g, " ");
-  if (raw.type) return raw.subtype ? `${raw.type} · ${raw.subtype}` : raw.type;
+  if (blockType && blockType !== "text") return prefix + blockType.replace(/_/g, " ");
+  if (raw.type) return raw.subtype ? `${raw.type} · ${raw.subtype}` : prefix + raw.type;
   return message.type;
 }
 
 function eventDetail(message) {
   const raw = message.content?.rawPayload;
-  if (raw?.type !== "result") return null;
-  const parts = [];
-  if (typeof raw.total_cost_usd === "number") parts.push(`$${raw.total_cost_usd.toFixed(3)}`);
-  if (typeof raw.duration_ms === "number") parts.push(`${(raw.duration_ms / 1000).toFixed(1)}s`);
-  return parts.length ? parts.join(" · ") : null;
+  if (!raw) return null;
+  if (raw.type === "result") {
+    const parts = [];
+    if (typeof raw.total_cost_usd === "number") parts.push(`$${raw.total_cost_usd.toFixed(3)}`);
+    if (typeof raw.duration_ms === "number") parts.push(`${(raw.duration_ms / 1000).toFixed(1)}s`);
+    return parts.length ? parts.join(" · ") : null;
+  }
+  if (raw.type === "system") return raw.description ?? raw.summary ?? null;
+  return null;
 }
 // ==== end shared logic ====
 
@@ -113,7 +130,7 @@ async function loadSession(sessionId) {
   chat.innerHTML = "";
   let bubbles = 0, chips = 0;
   for (const message of messages) {
-    const text = displayText(message.content);
+    const text = rendersAsBubble(message) ? displayText(message.content) : null;
     let el;
     if (text) {
       bubbles++;

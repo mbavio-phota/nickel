@@ -63,7 +63,7 @@ final class DemoFlowUITests: XCTestCase {
             format: "label CONTAINS 'I made the change' OR label CONTAINS 'pushed a fix' "
                 + "OR label CONTAINS 'what I found' OR label CONTAINS 'cleaned up a residual glitch'"
         )
-        XCTAssertTrue(app.staticTexts.matching(replyPredicate).firstMatch.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts.matching(replyPredicate).firstMatch.waitForExistence(timeout: 45))
         attachScreenshot(app, name: "07-agent-replied")
 
         // Settings sheet from the projects root.

@@ -267,6 +267,79 @@ final class JSONValueTests: XCTestCase {
         XCTAssertEqual(result.eventDetail, "$0.085 · 1.1s")
     }
 
+    /// Sub-agent (Task) traffic captured live 2026-07-04: the task prompt arrives as a
+    /// user-role text event with parent_tool_use_id set. It must chip, never bubble.
+    func testSubagentTaskPromptIsChipNotBubble() {
+        let message = TranscriptMessage(
+            id: "m", sessionId: "s", sessionIndex: 0, type: "agent",
+            content: .object([
+                "rawPayload": .object([
+                    "type": .string("user"),
+                    "parent_tool_use_id": .string("toolu_task_1"),
+                    "message": .object([
+                        "role": .string("user"),
+                        "content": .array([
+                            .object([
+                                "type": .string("text"),
+                                "text": .string("Give me a complete map of the repository."),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            receivedAt: "2026-07-04 14:28:19.429+00"
+        )
+        XCTAssertTrue(message.isSubagentEvent)
+        XCTAssertFalse(message.rendersAsBubble, "sub-agent prompts must not render as chat prose")
+        XCTAssertFalse(message.isFromUser)
+        XCTAssertEqual(message.eventKind, "task · user")
+    }
+
+    func testMainThreadAssistantTextStillBubbles() {
+        let message = TranscriptMessage(
+            id: "m", sessionId: "s", sessionIndex: 0, type: "agent",
+            content: .object([
+                "rawPayload": .object([
+                    "type": .string("assistant"),
+                    "parent_tool_use_id": .null,
+                    "message": .object([
+                        "role": .string("assistant"),
+                        "content": .array([
+                            .object(["type": .string("text"), "text": .string("Here you go.")]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            receivedAt: "2026-07-04 14:28:19.429+00"
+        )
+        XCTAssertFalse(message.isSubagentEvent, "a JSON-null parent_tool_use_id is not parented")
+        XCTAssertTrue(message.rendersAsBubble)
+    }
+
+    func testSystemTaskEventDetailUsesDescriptionOrSummary() {
+        func systemEvent(_ fields: [String: JSONValue]) -> TranscriptMessage {
+            var raw = fields
+            raw["type"] = .string("system")
+            return TranscriptMessage(
+                id: "m", sessionId: "s", sessionIndex: 0, type: "agent",
+                content: .object(["rawPayload": .object(raw)]),
+                receivedAt: "2026-07-04 14:28:19.429+00"
+            )
+        }
+        let progress = systemEvent([
+            "subtype": .string("task_progress"),
+            "description": .string("Map repository structure"),
+        ])
+        XCTAssertEqual(progress.eventKind, "system · task_progress")
+        XCTAssertEqual(progress.eventDetail, "Map repository structure")
+
+        let notification = systemEvent([
+            "subtype": .string("task_notification"),
+            "summary": .string("Task finished"),
+        ])
+        XCTAssertEqual(notification.eventDetail, "Task finished")
+    }
+
     func testToolResultUserRoleEventIsNotFromUser() {
         // Claude Code delivers tool results as user-role SDK events; they must not
         // render as the human's own message.

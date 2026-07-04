@@ -133,16 +133,40 @@ struct TranscriptMessage: Codable, Equatable, Identifiable, Hashable {
         return content.roleValue?.lowercased() == "user"
     }
 
+    /// Sub-agent (Task tool) turns are multiplexed into the transcript as ordinary SDK
+    /// user/assistant events distinguished only by `parent_tool_use_id` — including the
+    /// task prompt as a user-role text event. They are never main-thread prose.
+    var isSubagentEvent: Bool {
+        content["rawPayload"]?["parent_tool_use_id"]?.stringValue != nil
+    }
+
+    /// Whether this message renders as a chat bubble (main-thread prose) rather than an
+    /// event chip: the human's own messages, and un-parented assistant text.
+    var rendersAsBubble: Bool {
+        guard !isSubagentEvent else {
+            return false
+        }
+        if isFromUser {
+            return true
+        }
+        guard let raw = content["rawPayload"] else {
+            // Non-SDK payloads (e.g. the demo world) keep the text-presence heuristic.
+            return content.displayText != nil
+        }
+        return raw["type"]?.stringValue == "assistant" && content.displayText != nil
+    }
+
     /// A descriptive label for non-text events. Conductor's top-level `type` is a flat
     /// "agent" for every SDK event, so prefer the wrapped event's leading content-block
     /// type ("tool use", "tool result") or its own type/subtype ("system · init",
-    /// "result · success") over that.
+    /// "result · success") over that. Sub-agent traffic is prefixed "task".
     var eventKind: String {
         guard let raw = content["rawPayload"] else {
             return type
         }
+        let prefix = isSubagentEvent ? "task · " : ""
         if let blockType = raw["message"]?["content"]?[0]?["type"]?.stringValue, blockType != "text" {
-            return blockType.replacingOccurrences(of: "_", with: " ")
+            return prefix + blockType.replacingOccurrences(of: "_", with: " ")
         }
         guard let rawType = raw["type"]?.stringValue else {
             return type
@@ -150,22 +174,30 @@ struct TranscriptMessage: Codable, Equatable, Identifiable, Hashable {
         if let subtype = raw["subtype"]?.stringValue {
             return "\(rawType) · \(subtype)"
         }
-        return rawType
+        return prefix + rawType
     }
 
-    /// Compact stats shown on `result` chips: turn cost and duration.
+    /// Compact context shown next to the chip label: turn cost + duration for `result`
+    /// events, the task description/summary for `system` task events.
     var eventDetail: String? {
-        guard let raw = content["rawPayload"], raw["type"]?.stringValue == "result" else {
+        guard let raw = content["rawPayload"] else {
             return nil
         }
-        var parts: [String] = []
-        if let cost = raw["total_cost_usd"]?.numberValue {
-            parts.append(String(format: "$%.3f", cost))
+        switch raw["type"]?.stringValue {
+        case "result":
+            var parts: [String] = []
+            if let cost = raw["total_cost_usd"]?.numberValue {
+                parts.append(String(format: "$%.3f", cost))
+            }
+            if let milliseconds = raw["duration_ms"]?.numberValue {
+                parts.append(String(format: "%.1fs", milliseconds / 1000))
+            }
+            return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        case "system":
+            return raw["description"]?.stringValue ?? raw["summary"]?.stringValue
+        default:
+            return nil
         }
-        if let milliseconds = raw["duration_ms"]?.numberValue {
-            parts.append(String(format: "%.1fs", milliseconds / 1000))
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     static func == (lhs: TranscriptMessage, rhs: TranscriptMessage) -> Bool {
